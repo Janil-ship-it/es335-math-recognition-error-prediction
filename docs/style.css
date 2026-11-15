@@ -1,0 +1,15 @@
+:root { --bg:#f7f8fa; --card:#fff; --text:#1a1d23; --muted:#5c6570; --accent:#2563eb; --border:#e2e5eb; --radius:10px; font-family:system-ui,sans-serif; }
+*{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);line-height:1.55}
+.wrap{max-width:920px;margin:0 auto;padding:0 1.25rem}
+.site-header{background:#0f172a;color:#f1f5f9;padding:2.5rem 0 2rem}
+.site-header h1{margin:0 0 .4rem;font-size:1.75rem}
+.toc{display:flex;flex-wrap:wrap;gap:.5rem 1rem;padding:1rem;background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:0}
+.toc a{color:var(--accent);text-decoration:none;font-size:.9rem}
+main{padding:2rem 0 4rem} section{margin-bottom:2.5rem}
+h2{font-size:1.35rem;border-bottom:2px solid var(--border);padding-bottom:.4rem}
+table.metrics{width:100%;border-collapse:collapse;background:var(--card);border-radius:var(--radius);overflow:hidden}
+table.metrics th,table.metrics td{padding:.55rem .9rem;border-bottom:1px solid var(--border);text-align:left}
+.note{font-size:.92rem;color:var(--muted);background:#f0f4ff;padding:.75rem 1rem;border-radius:var(--radius)}
+pre{background:#0f172a;color:#e2e8f0;padding:1rem;border-radius:var(--radius);overflow-x:auto;font-size:.85rem}
+.site-footer{background:#0f172a;color:#94a3b8;padding:1.5rem 0;font-size:.9rem}
+.site-footer a{color:#93c5fd}

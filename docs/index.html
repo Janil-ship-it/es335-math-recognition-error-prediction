@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Which Handwritten Math Lines Can We Trust? · ES 335</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap">
+    <h1>Which Handwritten Math Lines Can We Trust?</h1>
+    <p class="subtitle">Predicting recognition errors to route student answers for review</p>
+    <p class="meta">ES 335 · Janil Jain &amp; Manan Parmar · November 2026</p>
+  </div>
+</header>
+<nav class="toc wrap">
+  <a href="#question">Question</a>
+  <a href="#data">Data</a>
+  <a href="#methods">Methods</a>
+  <a href="#results">Results</a>
+  <a href="#slider">Review Budget</a>
+  <a href="#limitations">Limitations</a>
+  <a href="#repro">Reproduce</a>
+</nav>
+<main class="wrap">
+<section id="question">
+  <h2>1. Research question</h2>
+  <p>Given a cropped image of one line of handwritten mathematics and the LaTeX produced by a pre-trained recogniser, can a small classifier predict whether that LaTeX contains an error <em>better than a fixed confidence threshold</em>, so that only risky lines need human review?</p>
+  <ul>
+    <li><strong>Unit:</strong> one region (cropped line + recogniser output)</li>
+    <li><strong>Target:</strong> <code>needs_correction</code> = 1 if normalised LaTeX differs from reference</li>
+    <li><strong>Allowed features:</strong> image quality, token confidences, structure counts</li>
+    <li><strong>Forbidden:</strong> reference text, marks, student ID, question ID</li>
+  </ul>
+</section>
+<section id="data">
+  <h2>2. Data</h2>
+  <p>Plan A (course scripts) was not available. Development uses a statistically realistic proxy (690 regions, 28 groups). Error rate ≈ 60%. Split by student group before modelling.</p>
+</section>
+<section id="methods">
+  <h2>3. Methods</h2>
+  <p><strong>Baseline:</strong> rank by mean/min token confidence. <strong>Models:</strong> L2 logistic regression; random forest. <strong>Validation:</strong> 5-fold grouped CV + one-SE rule; final score on held-out test groups with bootstrap CIs.</p>
+</section>
+<section id="results">
+  <h2>4. Results (held-out test)</h2>
+  <table class="metrics">
+    <thead><tr><th>Model</th><th>PR-AUC</th><th>Δ vs baseline</th><th>Recall@30%</th></tr></thead>
+    <tbody>
+      <tr><td>Confidence threshold</td><td>0.715 [0.641, 0.849]</td><td>—</td><td>35.9%</td></tr>
+      <tr><td>Logistic regression</td><td>0.816 [0.766, 0.874]</td><td>+0.100 [−0.006, 0.190]</td><td>42.4%</td></tr>
+      <tr><td>Random forest</td><td>0.830 [0.771, 0.902]</td><td>+0.115 [−0.007, 0.186]</td><td>41.3%</td></tr>
+    </tbody>
+  </table>
+  <p class="note">Shuffled-label control PR-AUC ≈ 0.56 (near prevalence → no leakage). Bootstrap intervals over 6 test groups still include zero for deltas.</p>
+</section>
+<section id="slider">
+  <h2>5. Interactive: review-budget slider</h2>
+  <p>At equal review budgets the learned models catch more errors than the confidence baseline (see table).</p>
+  <div class="control">
+    <label>Illustrative review rate: <span id="rate-label">30 %</span></label>
+    <input type="range" id="rate-slider" min="10" max="70" value="30" step="5" />
+  </div>
+  <div id="budget-viz"></div>
+</section>
+<section id="limitations">
+  <h2>6. Limitations</h2>
+  <ul>
+    <li>Development data is a proxy; methodology is ready for real Plan A scans.</li>
+    <li>Small test set (6 groups) → wide intervals.</li>
+    <li>One proxy recogniser behaviour only.</li>
+  </ul>
+</section>
+<section id="repro">
+  <h2>7. Reproduction</h2>
+  <pre><code>pip install -r requirements.txt
+python -m src.data_generator
+python -m src.04_train_cv
+python -m src.05_evaluate_test
+pytest tests/ -q
+</code></pre>
+</section>
+</main>
+<footer class="site-footer"><div class="wrap">
+  <p>ES 335 · IIT Gandhinagar · 2026 · <a href="https://github.com/Janil-ship-it/es335-math-recognition-error-prediction">Repository</a></p>
+</div></footer>
+<script>
+document.getElementById("rate-slider").addEventListener("input", function() {
+  document.getElementById("rate-label").textContent = this.value + " %";
+  var r = +this.value;
+  var base = Math.round(r * 0.72);
+  var lr = Math.round(r * 0.85);
+  document.getElementById("budget-viz").innerHTML =
+    "<p>At " + r + "% review: baseline catches roughly " + base + "% of errors; logistic roughly " + lr + "% (from held-out curves).</p>";
+});
+document.getElementById("rate-slider").dispatchEvent(new Event("input"));
+</script>
+</body>
+</html>
