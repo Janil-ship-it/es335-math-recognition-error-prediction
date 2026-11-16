@@ -1,167 +1,130 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Which Handwritten Math Lines Can We Trust? · ES 335</title>
-<link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Which Handwritten Math Lines Can We Trust? · ES 335</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 <header class="site-header">
   <div class="wrap">
     <h1>Which Handwritten Math Lines Can We Trust?</h1>
     <p class="subtitle">Predicting recognition errors so only risky handwritten-math lines go to human review</p>
-    <p class="meta">ES 335 · Machine Learning · IIT Gandhinagar · Janil Jain (25110143) & Manan Parmar (25110229) · Nov 2026</p>
-    <p class="meta"><a class="btn" href="https://github.com/Janil-ship-it/es335-math-recognition-error-prediction">Repository (code, splits, results)</a></p>
+    <p class="meta">ES 335 · Machine Learning · IIT Gandhinagar · Janil Jain (25110143) &amp; Manan Parmar (25110229) · November 2026</p>
   </div>
 </header>
 
-<nav class="toc wrap">
-  <a href="#question">Question</a>
-  <a href="#data">Data</a>
-  <a href="#preprocess">Preprocessing</a>
-  <a href="#models">Models</a>
-  <a href="#eval">Evaluation</a>
-  <a href="#results">Results</a>
-  <a href="#errors">Error analysis</a>
-  <a href="#slider">Explore</a>
-  <a href="#limitations">Limitations</a>
-  <a href="#repro">Reproduce</a>
+<nav class="nav">
+  <div class="wrap nav-inner">
+    <a href="index.html" class="active">Home</a>
+    <a href="data.html">Data</a>
+    <a href="methods.html">Methods</a>
+    <a href="results.html">Results</a>
+    <a href="explore.html">Explore</a>
+    <a href="limitations.html">Limitations</a>
+    <a href="reproduce.html">Reproduce</a>
+    <a class="repo-link" href="https://github.com/Janil-ship-it/es335-math-recognition-error-prediction" target="_blank" rel="noopener">GitHub</a>
+  </div>
 </nav>
 
 <main class="wrap">
+  <section>
+    <h2>Research question</h2>
+    <p>
+      After a pre-trained recogniser turns a student’s handwritten math into LaTeX,
+      <strong>which lines are likely wrong</strong>, so a marker only reviews those and trusts the rest?
+    </p>
+    <p>
+      Success is <em>not</em> accuracy. Success is: at the <em>same</em> human review budget
+      (20&nbsp;%, 30&nbsp;%, or 50&nbsp;% of lines), does a learned flagger catch more true errors than a fixed
+      confidence-threshold baseline?
+    </p>
+    <p>
+      A modest or negative result is acceptable and is reported honestly.
+    </p>
 
-<section id="question">
-  <h2>1. Research question</h2>
-  <p>After a pre-trained recogniser turns a student’s handwritten math into LaTeX, <strong>which lines are likely wrong</strong>, so a marker only reviews those and trusts the rest?</p>
-  <p>Success means: at the <em>same</em> review budget (20%, 30%, or 50% of lines), a learned flagger catches more true errors than a fixed confidence-threshold baseline. A modest or negative result is acceptable and is reported honestly.</p>
-  <h3>What one row is</h3>
-  <p>One <strong>region</strong> = one cropped line of handwritten math + the recogniser’s LaTeX for that line. The label <code>needs_correction = 1</code> if the normalised predicted LaTeX differs from the normalised reference; else 0. We never predict marks or student identity—only “should a human check this line?”</p>
-  <ul>
-    <li><strong>Prediction time:</strong> right after recognition, before grading</li>
-    <li><strong>Allowed inputs:</strong> image-quality features, token confidences, structure counts from the predicted LaTeX</li>
-    <li><strong>Forbidden inputs:</strong> reference text, marks, student ID, question ID</li>
-  </ul>
-</section>
+    <div class="hero-takeaway">
+      <h3>Key takeaway (held-out test groups)</h3>
+      <p>
+        Learned models improve PR-AUC and error recall at fixed review budgets relative to a pure
+        confidence threshold. With only six test students the bootstrap intervals for the <em>gains</em>
+        still include zero, so we do not claim a statistically stable win yet — we report the uncertainty.
+      </p>
+      <div class="stats-grid" style="margin-top:1.1rem">
+        <div class="stat-card">
+          <div class="value">0.816</div>
+          <div class="label">Logistic PR-AUC</div>
+        </div>
+        <div class="stat-card">
+          <div class="value">+0.10</div>
+          <div class="label">Δ vs baseline</div>
+        </div>
+        <div class="stat-card">
+          <div class="value">42%</div>
+          <div class="label">Recall @ 30% review</div>
+        </div>
+        <div class="stat-card">
+          <div class="value">≈0.56</div>
+          <div class="label">Shuffled-label control</div>
+        </div>
+      </div>
+    </div>
+  </section>
 
-<section id="data">
-  <h2>2. Data</h2>
-  <h3>Source</h3>
-  <p><strong>Plan A</strong> was anonymised course scripts (scans + human-checked LaTeX) from the course instructor. Those were not available at build time. We therefore built a <strong>development proxy</strong> whose feature–error relationships follow documented handwritten-math recogniser failure modes (blur, low contrast, complex structure raise error risk; high token confidence lowers it). When real scans arrive, the same code path is reused unchanged.</p>
-  <h3>Size and structure</h3>
-  <table class="stats">
-    <tr><th>Regions (rows)</th><td>690</td></tr>
-    <tr><th>Student / writer groups</th><td>28</td></tr>
-    <tr><th>Development groups / regions</th><td>22 / 544</td></tr>
-    <tr><th>Held-out test groups / regions</th><td>6 / 146</td></tr>
-    <tr><th>Error rate (<code>needs_correction</code>)</th><td>≈ 60%</td></tr>
-  </table>
-  <h3>Key variables</h3>
-  <ul>
-    <li><strong>Image quality:</strong> blur, contrast, ink density, stroke width, skew, crop size, background noise</li>
-    <li><strong>Confidence:</strong> mean token confidence, min token confidence, output length</li>
-    <li><strong>Structure:</strong> counts of fractions, powers, roots, subscripts in the predicted LaTeX</li>
-    <li><strong>Label:</strong> needs_correction (binary); SER (symbol error rate) for residual-error reporting</li>
-  </ul>
-  <h3>Quality issues</h3>
-  <ul>
-    <li>Proxy data is not real course handwriting—results describe the <em>method</em>, not yet operational performance on IITGN scripts.</li>
-    <li>Error rate is high (~60%) by design of the proxy (stress-tests ranking under many errors).</li>
-    <li>Only six test groups → wide uncertainty intervals.</li>
-  </ul>
-</section>
+  <section>
+    <h2>What one row is</h2>
+    <p>
+      One <strong>region</strong> = one cropped line of handwritten math + the recogniser’s LaTeX for that line.
+      The label <code>needs_correction = 1</code> if the normalised predicted LaTeX differs from the normalised
+      reference; otherwise 0. We never predict marks or student identity — only “should a human check this line?”
+    </p>
+    <ul>
+      <li><strong>Prediction time:</strong> right after recognition, before grading</li>
+      <li><strong>Allowed inputs:</strong> image-quality features, token confidences, structure counts from the predicted LaTeX</li>
+      <li><strong>Forbidden inputs:</strong> reference text, marks, student ID, question ID</li>
+    </ul>
+  </section>
 
-<section id="preprocess">
-  <h2>3. Preprocessing choices</h2>
-  <ul>
-    <li><strong>LaTeX normalisation</strong> before labelling: strip whitespace, map a few equivalent commands (<code>\leq</code>→<code>\le</code>, etc.). Spacing-only differences are not counted as errors.</li>
-    <li><strong>Group-level split</strong> (by student ID), fixed in <code>data/splits.json</code> with seed 42 <em>before</em> any modelling. No region from a test student appears in training.</li>
-    <li><strong>Standardisation</strong> of features inside logistic regression and the forest (train-set mean/std only).</li>
-    <li><strong>No leakage features:</strong> reference LaTeX, marks, and IDs are never used as model inputs (enforced in config).</li>
-  </ul>
-</section>
+  <section>
+    <h2>Why this matters</h2>
+    <p>
+      Grading handwritten maths with an AI model is costly partly because the same scanned page may be
+      read again and again. Our idea is to read each handwritten line once, turn it into text, and use a
+      small machine-learning model to guess which lines the reader probably got wrong. Only those risky
+      lines go to a person for correction. The rest are trusted, so later grading and rechecking can start
+      from the stored text instead of re-reading the image.
+    </p>
+    <div class="callout">
+      <strong>What changed since the first proposal.</strong>
+      Our first proposal was about reading bubble sheets. That step already runs locally without a language model,
+      and language-model effort goes mainly into the handwritten answers. Prof. Bhatia suggested digitising
+      handwritten working at the point of capture and using machine learning to flag unreliable readings.
+      This project follows that suggestion.
+    </div>
+  </section>
 
-<section id="models">
-  <h2>4. Baseline and models</h2>
-  <table class="metrics">
-    <thead><tr><th>Method</th><th>What it uses</th><th>Role</th></tr></thead>
-    <tbody>
-      <tr><td><strong>Confidence threshold</strong></td><td>Mean or min token confidence (chosen on train folds)</td><td>Primary baseline: rank by “how unsure the recogniser was”</td></tr>
-      <tr><td><strong>L2 logistic regression</strong></td><td>All allowed features, class-balanced, L2 penalty</td><td>Simple learned flagger; interpretable coefficients</td></tr>
-      <tr><td><strong>Random forest</strong></td><td>Bagged shallow trees on feature subsets</td><td>Non-linear alternative; capacity controlled by depth</td></tr>
-    </tbody>
-  </table>
-  <p>Model selection used <strong>grouped 5-fold CV</strong> on development students only, with the <strong>one-standard-error rule</strong> on validation PR-AUC. Logistic won on development; both logistic and forest are reported on the test set.</p>
-</section>
-
-<section id="eval">
-  <h2>5. Evaluation design</h2>
-  <ul>
-    <li><strong>Split:</strong> 22 students train/dev, 6 held out for a single final test. Test touched only in <code>05_evaluate_test.py</code>.</li>
-    <li><strong>Primary metric:</strong> PR-AUC (ranking quality under imbalance).</li>
-    <li><strong>Operational metrics:</strong> recall of true errors at fixed review rates 20%, 30%, 50%; residual average SER after “fixing” the top-rate fraction.</li>
-    <li><strong>Calibration:</strong> Brier score.</li>
-    <li><strong>Uncertainty:</strong> paired bootstrap over <em>test students</em> (2000 resamples), including Δ vs baseline.</li>
-    <li><strong>Integrity:</strong> shuffled-label control (train on permuted labels) → PR-AUC near prevalence if no leakage.</li>
-  </ul>
-</section>
-
-<section id="results">
-  <h2>6. Results (held-out test groups)</h2>
-  <table class="metrics">
-    <thead><tr><th>Model</th><th>PR-AUC (95% CI)</th><th>Δ vs baseline</th><th>Recall@20%</th><th>Recall@30%</th><th>Recall@50%</th><th>Brier</th></tr></thead>
-    <tbody>
-      <tr><td>Confidence baseline</td><td>0.715 [0.641, 0.849]</td><td>—</td><td>25.0%</td><td>35.9%</td><td>58.7%</td><td>0.237</td></tr>
-      <tr><td>Logistic L2</td><td>0.816 [0.766, 0.874]</td><td>+0.100 [−0.006, 0.190]</td><td>29.3%</td><td>42.4%</td><td>64.1%</td><td>0.200</td></tr>
-      <tr><td>Random forest</td><td>0.830 [0.771, 0.902]</td><td>+0.115 [−0.007, 0.186]</td><td>25.0%</td><td>41.3%</td><td>67.4%</td><td>0.195</td></tr>
-    </tbody>
-  </table>
-  <p class="note"><strong>Takeaway:</strong> Point estimates favour the learned models (higher PR-AUC and higher recall at 30–50% review). With only six test students the bootstrap intervals for the <em>gains</em> still include zero, so we do not claim a statistically stable win yet—we report the uncertainty. Shuffled-label control PR-AUC ≈ 0.56 (near prevalence) supports that the pipeline is not leaking labels.</p>
-</section>
-
-<section id="errors">
-  <h2>7. Error analysis</h2>
-  <p>At a 30% review budget, the baseline still misses about <strong>64%</strong> of true errors; logistic misses about <strong>58%</strong>. Misses tend to be cases where confidence looked moderate but image quality or structure was hard (high blur / complex fractions)—exactly the regimes the learned model is meant to catch using non-confidence features.</p>
-  <p>False alarms waste marker time; at equal review rate the ranking trade-off is built into PR-AUC and recall@k. Residual SER after reviewing the top 30% falls from ~0.13 (baseline) to ~0.12 (logistic), consistent with slightly better targeting of high-SER mistakes.</p>
-</section>
-
-<section id="slider">
-  <h2>8. Explore: review-budget trade-off</h2>
-  <p>Move the slider to choose what fraction of lines a marker is willing to check. The bars show how many of the true errors on the held-out test set would be caught if that top fraction were reviewed (using scores from the real test evaluation).</p>
-  <div class="control">
-    <label>Review rate: <span id="rate-label">30%</span></label>
-    <input type="range" id="rate-slider" min="10" max="70" value="30" step="5" />
-  </div>
-  <div id="budget-viz"></div>
-  <p class="note">Numbers use the actual test-set recall@k values from <code>results/test_metrics.json</code> (interpolated between the reported 20 / 30 / 50% points).</p>
-</section>
-
-<section id="limitations">
-  <h2>9. Limitations and claims</h2>
-  <ul>
-    <li><strong>Proxy data:</strong> Not real course scans. We claim a working evaluation methodology and ranking gains under this recogniser behaviour—not operational accuracy on IITGN scripts until Plan A is run.</li>
-    <li><strong>Small test set:</strong> Six groups → wide CIs; deltas vs baseline are not yet significant at 95%.</li>
-    <li><strong>One recogniser profile:</strong> Real TexTeller/UniMERNet confidences may shift the operating point.</li>
-    <li><strong>High base error rate:</strong> Makes ranking easier than on a cleaner recogniser; results may shrink when recognition improves.</li>
-  </ul>
-  <p><strong>What we do claim:</strong> On this setup, logistic and forest improve PR-AUC and error recall at fixed review budgets relative to a confidence threshold, with uncertainty quantified by student-level bootstrap, and with a negative control that does not look like leakage.</p>
-</section>
-
-<section id="repro">
-  <h2>10. Reproduce</h2>
-  <pre><code>git clone https://github.com/Janil-ship-it/es335-math-recognition-error-prediction
-cd es335-math-recognition-error-prediction
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-python -m src.data_generator
-python -m src.04_train_cv
-python -m src.05_evaluate_test
-pytest tests/ -q
-# open docs/index.html
-</code></pre>
-  <p>Full code, fixed splits, metrics JSON, and this site live in the <a href="https://github.com/Janil-ship-it/es335-math-recognition-error-prediction">repository</a>.</p>
-</section>
-
+  <section>
+    <h2>Site map</h2>
+    <div class="two-col">
+      <div class="card">
+        <h3 style="margin-top:0"><a href="data.html">Data</a></h3>
+        <p style="margin:0;font-size:0.95rem;color:var(--muted)">Sources, variables, quality checks, and citations for the development proxy and MathWriting.</p>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0"><a href="methods.html">Methods</a></h3>
+        <p style="margin:0;font-size:0.95rem;color:var(--muted)">Pipeline, features, baseline, models, evaluation design, and integrity checks.</p>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0"><a href="results.html">Results</a></h3>
+        <p style="margin:0;font-size:0.95rem;color:var(--muted)">Held-out metrics, uncertainty intervals, residual error, and calibration.</p>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0"><a href="explore.html">Explore</a></h3>
+        <p style="margin:0;font-size:0.95rem;color:var(--muted)">Interactive review-budget laboratory and region explorer (demo data).</p>
+      </div>
+    </div>
+  </section>
 </main>
 
 <footer class="site-footer">
@@ -170,43 +133,5 @@ pytest tests/ -q
     <p>AI assistants were used for scaffolding and editing; all experimental numbers come from the code in the repository. We take responsibility for every result.</p>
   </div>
 </footer>
-
-<script>
-const RECALL = {
-  baseline: {20: 0.25, 30: 0.3587, 50: 0.5870},
-  logistic: {20: 0.2935, 30: 0.4239, 50: 0.6413},
-  forest:   {20: 0.25, 30: 0.4130, 50: 0.6739}
-};
-function interp(map, rate) {
-  if (rate <= 20) return map[20] * (rate / 20);
-  if (rate >= 50) return map[50] + (1 - map[50]) * ((rate - 50) / 50) * 0.3;
-  if (rate <= 30) return map[20] + (map[30] - map[20]) * ((rate - 20) / 10);
-  return map[30] + (map[50] - map[30]) * ((rate - 30) / 20);
-}
-const slider = document.getElementById("rate-slider");
-const label = document.getElementById("rate-label");
-const viz = document.getElementById("budget-viz");
-function render() {
-  const r = +slider.value;
-  label.textContent = r + "%";
-  const b = interp(RECALL.baseline, r);
-  const l = interp(RECALL.logistic, r);
-  const f = interp(RECALL.forest, r);
-  const max = Math.max(b, l, f, 0.01);
-  viz.innerHTML = `
-    <div class="bar-row"><span class="lab">Baseline</span>
-      <div class="bar base" style="width:${(b/max)*70}%"></div>
-      <span>${(b*100).toFixed(1)}% of errors caught</span></div>
-    <div class="bar-row"><span class="lab">Logistic</span>
-      <div class="bar" style="width:${(l/max)*70}%"></div>
-      <span>${(l*100).toFixed(1)}% of errors caught</span></div>
-    <div class="bar-row"><span class="lab">Forest</span>
-      <div class="bar" style="width:${(f/max)*70}%"></div>
-      <span>${(f*100).toFixed(1)}% of errors caught</span></div>
-    <p class="note">Missed error rate ≈ ${(100*(1-l)).toFixed(0)}% (logistic) vs ${(100*(1-b)).toFixed(0)}% (baseline) at this budget.</p>`;
-}
-slider.addEventListener("input", render);
-render();
-</script>
 </body>
 </html>
