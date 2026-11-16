@@ -3,8 +3,20 @@
 **ES 335 · Machine Learning · IIT Gandhinagar**  
 Janil Jain (25110143) & Manan Parmar (25110229)
 
-**Website (full reasoning):** open [`docs/index.html`](docs/index.html) or enable GitHub Pages on `/docs`.  
+**Website (full reasoning + interactive laboratory):** open [`docs/index.html`](docs/index.html) or enable GitHub Pages on `/docs`.  
 A grader should be able to assess the project from the website alone; this repo is for verification and reproduction.
+
+The site is multi-page:
+
+| Page | Content |
+|------|---------|
+| [Home](docs/index.html) | Research question & key takeaway |
+| [Data](docs/data.html) | Sources, variables, MathWriting citation |
+| [Methods](docs/methods.html) | Pipeline, models, evaluation design |
+| [Results](docs/results.html) | Held-out metrics & uncertainty |
+| [Explore](docs/explore.html) | Interactive review-budget lab + region explorer |
+| [Limitations](docs/limitations.html) | Claims & limitations |
+| [Reproduce](docs/reproduce.html) | Commands, citations, AI disclosure |
 
 ## Research question
 
@@ -33,7 +45,7 @@ pytest tests/ -q
 | Random forest | 0.830 | +0.115 [−0.007, 0.186] | 41.3% |
 
 Shuffled-label control ≈ 0.56 (near prevalence → no obvious leakage).  
-Full table, error analysis, and interactive review-budget slider: **docs/index.html**.
+Full table, residual-error curves, and interactive laboratory: **[docs/explore.html](docs/explore.html)**.
 
 ## Data access
 
@@ -42,19 +54,11 @@ Full table, error analysis, and interactive review-budget slider: **docs/index.h
 
 Splits are fixed in `data/splits.json` before modelling.
 
-## Repository layout
+## Citations
 
-| Path | Role |
-|---|---|
-| `src/metrics.py` | Normalisation, SER, PR-AUC, bootstrap |
-| `src/models.py` | Baseline, logistic, random forest |
-| `src/data_generator.py` | Development data |
-| `src/04_train_cv.py` | Grouped 5-fold CV + 1-SE selection |
-| `src/05_evaluate_test.py` | Final test evaluation only |
-| `data/splits.json` | Group → train/test assignment |
-| `results/test_metrics.json` | Held-out metrics |
-| `docs/` | Project website |
-| `tests/` | Unit tests |
+- **MathWriting** — Gervais, P., et al. *MathWriting: A Dataset For Handwritten Mathematical Expression Recognition*. arXiv:2404.10690, 2024. CC BY-NC-SA 4.0. https://arxiv.org/abs/2404.10690
+- Candidate recognisers (inference only, not fine-tuned): TexTeller, UniMERNet.
+- Evaluation follows course SPEC: grouped splits, PR-AUC, review-rate recall, student-level bootstrap.
 
 ## Design rules
 
@@ -66,12 +70,6 @@ Splits are fixed in `data/splits.json` before modelling.
 ## AI-use disclosure
 
 AI assistants (including Grok) were used for scaffolding, boilerplate, editing, and drafting website copy. All experimental numbers were produced by running the code in this repository. We verified the pipeline end-to-end and take responsibility for every result and claim.
-
-## Citations / related work
-
-- MathWriting / online handwriting datasets (Google Research) for public HMER context.  
-- Standard HMER systems (e.g. TexTeller, UniMERNet) as candidate recognisers (inference only; not fine-tuned here).  
-- Evaluation follows course SPEC: grouped splits, PR-AUC, review-rate recall, bootstrap over groups.
 
 ## Licence
 
