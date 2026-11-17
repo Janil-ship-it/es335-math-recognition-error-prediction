@@ -3,69 +3,67 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Reproduce · Handwritten Math Error Prediction · ES 335</title>
+  <title>Reproduce · MathGuard · ES 335</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+<a class="skip-link" href="#main">Skip to content</a>
 <header class="site-header">
   <div class="wrap">
-    <h1>Which Handwritten Math Lines Can We Trust?</h1>
+    <h1>Reproduce</h1>
     <p class="subtitle">Commands, citations, and AI disclosure</p>
-    <p class="meta">ES 335 · IIT Gandhinagar · Janil Jain &amp; Manan Parmar</p>
+    <div class="badge-row">
+      <span class="badge badge-synthetic">Synthetic development data</span>
+      <span class="badge badge-course">ES 335 · IITGN</span>
+    </div>
   </div>
 </header>
+<nav class="nav" id="site-nav" aria-label="Primary"></nav>
+<main id="main" class="wrap">
+  <p class="breadcrumb"><a href="index.html">Home</a><span>/</span><span>Reproduce</span></p>
 
-<nav class="nav">
-  <div class="wrap nav-inner">
-    <a href="index.html">Home</a>
-    <a href="data.html">Data</a>
-    <a href="methods.html">Methods</a>
-    <a href="results.html">Results</a>
-    <a href="explore.html">Explore</a>
-    <a href="limitations.html">Limitations</a>
-    <a href="reproduce.html" class="active">Reproduce</a>
-    <a class="repo-link" href="https://github.com/Janil-ship-it/es335-math-recognition-error-prediction" target="_blank" rel="noopener">GitHub</a>
+  <div class="in-short">
+    <strong>In short.</strong>
+    All site metrics come from running the repository pipeline with seed 42. Open the static site from
+    <code>docs/</code> or enable GitHub Pages on <code>/docs</code>.
   </div>
-</nav>
 
-<main class="wrap">
   <section>
-    <h2>Reproduce the numbers</h2>
+    <h2>Commands</h2>
     <pre><code>python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-python -m src.data_generator      # data/features.csv + splits.json
-python -m src.04_train_cv         # grouped CV (never touches test)
-python -m src.05_evaluate_test    # single final test evaluation + site JSON
+python -m src.data_generator
+python -m src.04_train_cv
+python -m src.05_evaluate_test
 pytest tests/ -q
-# open docs/index.html (or enable GitHub Pages on /docs)
-</code></pre>
-    <p>Seed is fixed at 42. <code>data/splits.json</code> is written once and must not be regenerated after results exist.</p>
+# serve docs/ for local browsing
+cd docs && python -m http.server 8000</code></pre>
   </section>
+
   <section>
     <h2>Citations</h2>
-    <ul>
-      <li><strong>MathWriting</strong> — Gervais, P., et al. <em>MathWriting: A Dataset For Handwritten Mathematical Expression Recognition</em>. arXiv:2404.10690, 2024. CC BY-NC-SA 4.0.</li>
+    <ul class="check">
+      <li><strong>MathWriting</strong> — Gervais et al., arXiv:2404.10690, 2024. CC BY-NC-SA 4.0.</li>
       <li>Candidate recognisers (inference only): TexTeller, UniMERNet.</li>
     </ul>
   </section>
+
   <section>
     <h2>AI-use disclosure</h2>
     <p>
-      AI assistants (including Grok) were used for scaffolding, boilerplate, editing, and drafting website copy.
-      All experimental numbers were produced by running the code in this repository. We verified the pipeline
-      end-to-end and take responsibility for every result and claim.
+      AI assistants were used for scaffolding, boilerplate, editing, and website structure.
+      All experimental numbers were produced by running the code in this repository.
     </p>
   </section>
-  <section>
-    <h2>Licence</h2>
-    <p>See <code>LICENSE</code> in the repository. Third-party datasets remain under their own terms.</p>
-  </section>
-</main>
 
-<footer class="site-footer">
-  <div class="wrap">
-    <p>ES 335 · Machine Learning · IIT Gandhinagar · 2026</p>
-  </div>
-</footer>
+  <nav class="page-nav">
+    <a href="limitations.html" class="prev"><span class="dir">Previous</span><span class="title">Limitations</span></a>
+    <a href="index.html" class="next"><span class="dir">Home</span><span class="title">Overview</span></a>
+  </nav>
+</main>
+<footer class="site-footer"><div class="wrap"><p>ES 335 · IIT Gandhinagar · 2026</p></div></footer>
+<script src="app.js"></script>
+<script>MathGuard.init({ page: "reproduce" });</script>
 </body>
 </html>
