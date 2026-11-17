@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Methods · Handwritten Math Error Prediction · ES 335</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap">
+    <h1>Which Handwritten Math Lines Can We Trust?</h1>
+    <p class="subtitle">Pipeline, features, models, and evaluation design</p>
+    <p class="meta">ES 335 · IIT Gandhinagar · Janil Jain &amp; Manan Parmar</p>
+  </div>
+</header>
+
+<nav class="nav">
+  <div class="wrap nav-inner">
+    <a href="index.html">Home</a>
+    <a href="data.html">Data</a>
+    <a href="methods.html" class="active">Methods</a>
+    <a href="results.html">Results</a>
+    <a href="explore.html">Explore</a>
+    <a href="limitations.html">Limitations</a>
+    <a href="reproduce.html">Reproduce</a>
+    <a class="repo-link" href="https://github.com/Janil-ship-it/es335-math-recognition-error-prediction" target="_blank" rel="noopener">GitHub</a>
+  </div>
+</nav>
+
+<main class="wrap">
+  <section>
+    <h2>Pipeline</h2>
+    <ol class="pipeline">
+      <li><strong>Capture check</strong> — flag blank, cut-off or extremely blurry pages (reported, not silently dropped).</li>
+      <li><strong>Region extraction</strong> — line-level crops via horizontal projection + adaptive threshold (OpenCV). Manual correction allowed in v1.</li>
+      <li><strong>Light cleaning</strong> — grayscale, denoise, contrast stretch, deskew, pad/resize.</li>
+      <li><strong>Recognition</strong> — pre-trained HMER model (TexTeller / UniMERNet candidates). Inference only, never fine-tuned. Returns LaTeX + per-token confidences.</li>
+      <li><strong>Feature extraction</strong> — image quality, confidence statistics, structure counts from predicted LaTeX.</li>
+      <li><strong>Error prediction</strong> — classical models rank regions by <code>P(needs_correction)</code>.</li>
+      <li><strong>Human review</strong> — top-k by predicted risk at a fixed budget; remaining lines keep recogniser output.</li>
+    </ol>
+    <div class="callout">
+      <strong>Development note.</strong> The current submission uses a carefully designed synthetic proxy whose feature–error relationships follow documented HMER failure modes. The same code path is reused when real scans arrive. Real HMER weights are optional and blocked without GPU/model download.
+    </div>
+  </section>
+
+  <section>
+    <h2>Features (allowed at prediction time)</h2>
+    <table>
+      <thead><tr><th>Group</th><th>Features</th></tr></thead>
+      <tbody>
+        <tr><td>Confidence</td><td>mean token confidence, min token confidence, output length</td></tr>
+        <tr><td>Image quality</td><td>blur (Laplacian), contrast, ink density, stroke width, skew, crop size, background noise</td></tr>
+        <tr><td>Structure</td><td>counts of fractions, powers, roots, subscripts in predicted LaTeX</td></tr>
+      </tbody>
+    </table>
+    <p><strong>Forbidden:</strong> reference text, marks, student ID, group ID, question ID.</p>
+  </section>
+
+  <section>
+    <h2>Models</h2>
+    <ul>
+      <li><strong>Fixed confidence threshold (baseline)</strong> — ranks by mean or min token confidence (chosen on training folds).</li>
+      <li><strong>Logistic regression (L2)</strong> — standardised features, class-balanced weights in training only.</li>
+      <li><strong>Random forest</strong> — shallow trees (depth ≤ 4), bootstrap aggregation.</li>
+      <li><strong>SVM (RBF)</strong> — scikit-learn SVC + sigmoid calibration via CalibratedClassifierCV.</li>
+    </ul>
+    <p>Selection rule: simplest model whose validation PR-AUC is within one standard error of the best (grouped CV).</p>
+  </section>
+
+  <section>
+    <h2>Evaluation design (fixed before model comparison)</h2>
+    <ul>
+      <li>Split by <strong>student/writer group</strong> only. ~20% groups held out as test; never used until final evaluation.</li>
+      <li>Development set: 5-fold grouped cross-validation.</li>
+      <li>Primary metric: <strong>PR-AUC</strong>.</li>
+      <li>Operational metrics: recall of true errors at 20%, 30%, 50% review budgets; residual symbol-error rate after simulated correction.</li>
+      <li>Uncertainty: paired bootstrap over test students (2 000 resamples, 95% intervals) for metrics and for Δ vs baseline.</li>
+      <li>Integrity: shuffled-label control; no leakage through forbidden features or region-level splits.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Labelling &amp; normalisation</h2>
+    <p>References are human transcriptions. Before comparison we normalise spacing and equivalent commands (<code>\leq</code>→<code>\le</code>, etc.). Every normalisation rule has a unit test. The recogniser output is never copied into the reference.</p>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <p>ES 335 · Machine Learning · IIT Gandhinagar · 2026</p>
+    <p><a href="index.html">Home</a> · <a href="reproduce.html">Reproduce &amp; cite</a></p>
+  </div>
+</footer>
+</body>
+</html>

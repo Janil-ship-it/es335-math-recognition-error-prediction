@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Limitations · Handwritten Math Error Prediction · ES 335</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap">
+    <h1>Which Handwritten Math Lines Can We Trust?</h1>
+    <p class="subtitle">Claims, limitations, and what we do not claim</p>
+    <p class="meta">ES 335 · IIT Gandhinagar · Janil Jain &amp; Manan Parmar</p>
+  </div>
+</header>
+
+<nav class="nav">
+  <div class="wrap nav-inner">
+    <a href="index.html">Home</a>
+    <a href="data.html">Data</a>
+    <a href="methods.html">Methods</a>
+    <a href="results.html">Results</a>
+    <a href="explore.html">Explore</a>
+    <a href="limitations.html" class="active">Limitations</a>
+    <a href="reproduce.html">Reproduce</a>
+    <a class="repo-link" href="https://github.com/Janil-ship-it/es335-math-recognition-error-prediction" target="_blank" rel="noopener">GitHub</a>
+  </div>
+</nav>
+
+<main class="wrap">
+  <section>
+    <h2>What we claim</h2>
+    <p>
+      On this recogniser, this development proxy (and, when available, these course scans), and these feature definitions,
+      a learned flagger can rank lines so that, at the same review budget, more true recognition errors are caught than
+      by a fixed confidence threshold. All gains are reported with student-level bootstrap intervals.
+    </p>
+  </section>
+  <section>
+    <h2>What we do <em>not</em> claim</h2>
+    <ul>
+      <li>That results transfer to other recognisers, scanners, subjects, or assignment formats.</li>
+      <li>That digitisation alone makes grading correct.</li>
+      <li>Statistically stable superiority: with only six test students the Δ intervals still include zero.</li>
+      <li>Token or time savings, unless measured with logged settings (currently an estimate only).</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Known limitations</h2>
+    <ul>
+      <li><strong>Small test set</strong> — six student groups; wide confidence intervals.</li>
+      <li><strong>Development proxy</strong> — current numbers come from a synthetic dataset whose error process follows documented HMER failure modes, not yet from IITGN course scripts.</li>
+      <li><strong>One recogniser family</strong> — real TexTeller/UniMERNet inference is interfaced but not required for the proxy path; results are for the confidence and image features defined here.</li>
+      <li><strong>Line detector is a prototype</strong> — horizontal projection; production use needs correction or a trained detector.</li>
+      <li><strong>References</strong> — human transcriptions by the team; inter-annotator agreement should be reported when Plan A data arrives.</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Blocked components</h2>
+    <ul>
+      <li>Real student scans (privacy; not in repository).</li>
+      <li>Full-weight HMER models (large download + GPU preferred).</li>
+      <li>Mark-agreement analysis (requires Plan A marks).</li>
+    </ul>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <p>ES 335 · Machine Learning · IIT Gandhinagar · 2026</p>
+  </div>
+</footer>
+</body>
+</html>
