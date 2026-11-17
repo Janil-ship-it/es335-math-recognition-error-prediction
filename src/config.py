@@ -10,7 +10,10 @@ LOGS_DIR = RESULTS_DIR / "logs"
 MATHWRITING_DIR = DATA_DIR / "mathwriting"
 REGIONS_DIR = MATHWRITING_DIR / "regions"
 REGIONS_META_PATH = MATHWRITING_DIR / "regions_meta.csv"
-SPLITS_PATH = MATHWRITING_DIR / "splits.json"
+# Prefer MathWriting splits when present (after 00_prepare); fall back to committed data/splits.json
+_SPLITS_MW = MATHWRITING_DIR / "splits.json"
+_SPLITS_LEGACY = DATA_DIR / "splits.json"
+SPLITS_PATH = _SPLITS_MW if _SPLITS_MW.exists() else _SPLITS_LEGACY
 FEATURES_PATH = DATA_DIR / "features.csv"
 RECOGNITIONS_PATH = RESULTS_DIR / "recognitions.jsonl"
 PREDICTIONS_PATH = RESULTS_DIR / "predictions.csv"
