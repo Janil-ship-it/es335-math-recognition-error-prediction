@@ -7,6 +7,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script>
+(function(){try{var t=localStorage.getItem("mathguard-theme");if(t!=="light"&&t!=="dark")t=window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.setAttribute("data-theme",t);}catch(e){document.documentElement.setAttribute("data-theme","light");}})();
+</script>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -16,12 +19,12 @@
   <div class="wrap">
     <h1>Which handwritten math lines can we trust?</h1>
     <p class="subtitle">
-      A learned flagger can rank lines so that, at the same review budget, more true recognition errors are caught
-      than by a fixed confidence threshold — with the caveat that bootstrap intervals for the gain still include zero.
+      Can a learned error-prediction model identify more incorrect handwritten mathematical recognitions
+      than a confidence-based baseline at the same human review budget?
     </p>
     <div class="badge-row">
-      <span class="badge badge-synthetic" title="Results use a synthetic development proxy, not real course scans">Synthetic development data</span>
       <span class="badge badge-course">ES 335 · IIT Gandhinagar · 2026</span>
+      <span class="badge badge-course" title="MathWriting human-written expressions with simulated scan degradation">MathWriting · simulated degradation</span>
     </div>
     <div class="cta-row">
       <a class="btn btn-primary" href="problem.html">Start the walkthrough</a>
@@ -38,9 +41,11 @@
     <h2 id="honesty-heading" class="visually-hidden" style="position:absolute;width:1px;height:1px;overflow:hidden">Read this first</h2>
     <div class="callout callout-warning">
       <strong>Read this first.</strong>
-      All experimental numbers on this site come from a <strong>synthetic development proxy</strong>
-      (feature–error links that follow documented HMER failure modes), not from anonymised IITGN course scans.
-      Bootstrap CIs for Δ vs baseline include zero. We do not claim a statistically stable win.
+      This site documents a complete experimental pipeline on <strong>MathWriting</strong> human-written expressions
+      with simulated scan degradation (blur, noise, rotation, shading). Writer IDs are unavailable, so writer-level
+      leakage cannot be excluded. Final metrics and error examples will populate automatically once the recognition
+      and evaluation stages finish. Until then, missing numbers display as “—”.
+      We do not claim that the learned models outperform the confidence baseline until the held-out evaluation is complete.
     </div>
   </section>
 
@@ -80,58 +85,33 @@
     </svg>
   </section>
 
-  <section class="fade-in" aria-labelledby="did-heading">
-    <h2 id="did-heading">What we did</h2>
-    <ol class="timeline">
-      <li>Define the unit: one cropped line + recogniser LaTeX; label = needs correction after normalisation.</li>
-      <li>Build a development proxy with student-level groups and realistic feature–error links.</li>
-      <li>Split by student group only; freeze <code>splits.json</code> before modelling.</li>
-      <li>Train confidence baseline, logistic regression, random forest, and SVM with grouped CV.</li>
-      <li>Evaluate once on held-out students with bootstrap CIs over groups.</li>
-      <li>Ship an interactive review-budget lab driven by precomputed scores.</li>
-    </ol>
-  </section>
-
-  <section class="fade-in" aria-labelledby="find-heading">
-    <h2 id="find-heading">Key findings</h2>
-    <ul class="check">
-      <li>Learned models improve PR-AUC and recall at fixed review budgets relative to a pure confidence threshold on this proxy.</li>
-      <li>With only six test students, the 95% bootstrap intervals for the <em>gains</em> still include zero — we report the uncertainty, not a definitive win.</li>
-      <li>Shuffled-label control scores near prevalence, which is consistent with no obvious leakage.</li>
-    </ul>
-  </section>
-
-  <section class="fade-in" aria-labelledby="walk-heading">
-    <h2 id="walk-heading">Walkthrough</h2>
-    <div class="card-grid">
-      <a class="step-card" href="problem.html"><span class="step-num">Step 1</span><h3>Problem</h3><p>Research question, what one row is, forbidden features.</p></a>
-      <a class="step-card" href="data.html"><span class="step-num">Step 2</span><h3>Data</h3><p>Sources, proxy design, variables, and citations.</p></a>
-      <a class="step-card" href="methods.html"><span class="step-num">Step 3</span><h3>Methods</h3><p>Pipeline, models, grouped CV, evaluation design.</p></a>
-      <a class="step-card" href="results.html"><span class="step-num">Step 4</span><h3>Results</h3><p>Held-out metrics, CIs, feature importance.</p></a>
-      <a class="step-card" href="explore.html"><span class="step-num">Step 5</span><h3>Review lab</h3><p>Interactive budget comparison: baseline vs models.</p></a>
-      <a class="step-card" href="errors.html"><span class="step-num">Step 6</span><h3>Errors</h3><p>Region explorer, misses, and false alarms.</p></a>
-      <a class="step-card" href="limitations.html"><span class="step-num">Step 7</span><h3>Limits</h3><p>What we claim and what we do not.</p></a>
-      <a class="step-card" href="reproduce.html"><span class="step-num">Appendix</span><h3>Reproduce</h3><p>Commands, citations, AI disclosure.</p></a>
-    </div>
-  </section>
-
-  <section class="fade-in">
-    <h2>Team &amp; repository</h2>
-    <p>Janil Jain (25110143) and Manan Parmar (25110229) · ES 335, IIT Gandhinagar.</p>
-    <p><a href="https://github.com/Janil-ship-it/es335-math-recognition-error-prediction" target="_blank" rel="noopener">github.com/Janil-ship-it/es335-math-recognition-error-prediction</a></p>
+  <section class="fade-in" aria-labelledby="steps-heading">
+    <h2 id="steps-heading">Walkthrough</h2>
+    <div class="card-grid" id="step-cards"></div>
   </section>
 </main>
 
 <footer class="site-footer">
   <div class="wrap">
-    <p>ES 335 · Machine Learning · IIT Gandhinagar · 2026</p>
-    <p>Numbers are produced by repository code on a synthetic development proxy. AI assistants helped with scaffolding; we take responsibility for every result.</p>
+    <p>ES 335 · IIT Gandhinagar · 2026 · <a href="https://github.com/Janil-ship-it/es335-math-recognition-error-prediction">GitHub</a></p>
   </div>
 </footer>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="app.js"></script>
 <script>
   MathGuard.init({ page: "home", stats: "home-stats" });
+  // Build step cards from STEPS
+  (function () {
+    const grid = document.getElementById("step-cards");
+    if (!grid || !window.MathGuard) return;
+    grid.innerHTML = MathGuard.STEPS.map((s) => `
+      <a class="step-card" href="${s.href}">
+        <div class="step-num">Step ${s.num}</div>
+        <h3>${s.title}</h3>
+        <p>Open the ${s.title.toLowerCase()} page</p>
+      </a>`).join("");
+  })();
 </script>
 </body>
 </html>

@@ -3,67 +3,24 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Problem · MathGuard · ES 335</title>
+  <title>Problem · ES 335 Math Recognition Error Prediction</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script>
+(function(){try{var t=localStorage.getItem("mathguard-theme");if(t!=="light"&&t!=="dark")t=window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.setAttribute("data-theme",t);}catch(e){document.documentElement.setAttribute("data-theme","light");}})();
+</script>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
-<header class="site-header">
-  <div class="wrap">
-    <h1>Problem</h1>
-    <p class="subtitle">What we are trying to predict — and what we refuse to use as input</p>
-    <div class="badge-row">
-      <span class="badge badge-synthetic">Synthetic development data</span>
-      <span class="badge badge-course">ES 335 · IITGN</span>
-    </div>
-  </div>
-</header>
 <nav class="nav" id="site-nav" aria-label="Primary"></nav>
 <main id="main" class="wrap">
-  <div id="breadcrumb" class="breadcrumb"></div>
   <div id="step-progress"></div>
-
-  <div class="in-short">
-    <strong>In short.</strong>
-    After a pre-trained recogniser turns a handwritten math line into LaTeX, we predict which lines are likely wrong
-    so a marker only reviews those. Success is higher error recall at the same review budget — not accuracy.
-  </div>
-
-  <section>
-    <h2>Research question</h2>
-    <p>
-      At the same human review budget (20%, 30%, or 50% of lines), does a learned flagger catch more wrong
-      recogniser readings than a fixed confidence-threshold baseline?
-    </p>
-    <p>A modest or negative result is acceptable and is reported honestly.</p>
-  </section>
-
-  <section>
-    <h2>What one row is</h2>
-    <p>
-      One <strong>region</strong> = one cropped line of handwritten math + the recogniser’s LaTeX for that line.
-      The label <code>needs_correction = 1</code> if the normalised predicted LaTeX differs from the normalised
-      reference; otherwise 0.
-    </p>
-    <ul class="check">
-      <li><strong>Prediction time:</strong> right after recognition, before grading</li>
-      <li><strong>Allowed inputs:</strong> image-quality features, token confidences, structure counts from predicted LaTeX</li>
-      <li><strong>Forbidden inputs:</strong> reference text, marks, student ID, question ID</li>
-    </ul>
-  </section>
-
-  <section>
-    <h2>Why this matters</h2>
-    <p>
-      Grading handwritten maths with an AI model is costly partly because the same scanned page may be re-read
-      many times. The idea is to read each line once, store text, and use a small model to guess which lines the
-      reader probably got wrong. Only those lines go to a person.
-    </p>
-  </section>
-
-  <nav class="page-nav" id="page-nav" aria-label="Page"></nav>
+  <div id="breadcrumb" class="breadcrumb"></div>
+  <h1>Problem formulation</h1>
+  <p>Research question: Can a learned error-prediction model identify more incorrect handwritten mathematical recognitions than a confidence-based baseline at the same human review budget?</p>
+  <div id="page-nav" class="page-nav"></div>
 </main>
 <footer class="site-footer"><div class="wrap"><p>ES 335 · IIT Gandhinagar · 2026</p></div></footer>
 <script src="app.js"></script>

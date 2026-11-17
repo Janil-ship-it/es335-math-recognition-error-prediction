@@ -3,165 +3,27 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Review lab · MathGuard · ES 335</title>
+  <title>Review lab · ES 335 Math Recognition Error Prediction</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script>
+(function(){try{var t=localStorage.getItem("mathguard-theme");if(t!=="light"&&t!=="dark")t=window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.setAttribute("data-theme",t);}catch(e){document.documentElement.setAttribute("data-theme","light");}})();
+</script>
   <link rel="stylesheet" href="style.css" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
-<header class="site-header">
-  <div class="wrap">
-    <h1>Review-budget laboratory</h1>
-    <p class="subtitle">Compare baseline vs learned models at measured review rates only</p>
-    <div class="badge-row">
-      <span class="badge badge-synthetic">Synthetic development data</span>
-      <span class="badge badge-course">ES 335 · IITGN</span>
-    </div>
-  </div>
-</header>
 <nav class="nav" id="site-nav" aria-label="Primary"></nav>
-<main id="main" class="wrap wide">
-  <div id="breadcrumb" class="breadcrumb"></div>
+<main id="main" class="wrap">
   <div id="step-progress"></div>
-
-  <div class="in-short">
-    <strong>In short.</strong>
-    Pick a model and a measured review budget (20%, 30%, or 50%). We show errors caught, missed, and residual SER
-    for baseline vs the model — only at rates present in the evaluation JSON, with no interpolation.
-  </div>
-
-  <section>
-    <div class="filters">
-      <label>Model
-        <select id="model-select">
-          <option value="logistic_l2">Logistic regression</option>
-          <option value="random_forest">Random forest</option>
-          <option value="svm_rbf">SVM (RBF)</option>
-        </select>
-      </label>
-    </div>
-    <p class="note">Review budget (measured points only)</p>
-    <div class="pills" id="budget-chips" role="group" aria-label="Review budget"></div>
-
-    <div class="lab-grid">
-      <div class="card">
-        <h3 style="margin-top:0">Confidence baseline</h3>
-        <div class="pills" id="base-pills"></div>
-      </div>
-      <div class="card">
-        <h3 style="margin-top:0" id="model-title">Logistic regression</h3>
-        <div class="pills" id="model-pills"></div>
-      </div>
-    </div>
-
-    <div class="chart-box">
-      <canvas id="budget-chart" height="220" aria-label="Recall and residual SER at measured review budgets"></canvas>
-    </div>
-    <p class="note">Chart shows only the three measured budgets from the evaluation. No curve interpolation.</p>
-  </section>
-
-  <nav class="page-nav" id="page-nav" aria-label="Page"></nav>
+  <div id="breadcrumb" class="breadcrumb"></div>
+  <h1>Review lab</h1>
+  <p class="note">Interactive exploration of regions. Loads from <code>data/regions.json</code> when available.</p>
+  <div id="page-nav" class="page-nav"></div>
 </main>
 <footer class="site-footer"><div class="wrap"><p>ES 335 · IIT Gandhinagar · 2026</p></div></footer>
 <script src="app.js"></script>
-<script>
-(function () {
-  var DATA = null;
-  var chart = null;
-  var rate = 0.3;
-
-  function recallKey(r) { return "recall@" + Math.round(r * 100); }
-  function serKey(r) { return "residual_ser@" + Math.round(r * 100); }
-
-  function metricsAt(modelKey, r) {
-    var m = (DATA.metrics || {})[modelKey] || {};
-    return {
-      recall: m[recallKey(r)],
-      residual_ser: m[serKey(r)],
-      pr_auc: m.pr_auc
-    };
-  }
-
-  function renderPills(el, m) {
-    if (!el) return;
-    el.innerHTML =
-      '<span class="pill">Recall <strong>' + MathGuard.pct(m.recall) + '</strong></span>' +
-      '<span class="pill">Residual SER <strong>' + MathGuard.fmt(m.residual_ser) + '</strong></span>' +
-      '<span class="pill">PR-AUC <strong>' + MathGuard.fmt(m.pr_auc) + '</strong></span>';
-  }
-
-  function update() {
-    if (!DATA) return;
-    var modelKey = document.getElementById("model-select").value;
-    document.getElementById("model-title").textContent = (MathGuard.MODEL_META[modelKey] || {}).label || modelKey;
-    renderPills(document.getElementById("base-pills"), metricsAt("baseline_confidence", rate));
-    renderPills(document.getElementById("model-pills"), metricsAt(modelKey, rate));
-
-    var rates = (DATA.review_rates || [0.2, 0.3, 0.5]).slice();
-    var labels = rates.map(function (r) { return Math.round(r * 100) + "%"; });
-    var baseRec = rates.map(function (r) { return (metricsAt("baseline_confidence", r).recall || 0) * 100; });
-    var modRec = rates.map(function (r) { return (metricsAt(modelKey, r).recall || 0) * 100; });
-    var baseSer = rates.map(function (r) { return metricsAt("baseline_confidence", r).residual_ser; });
-    var modSer = rates.map(function (r) { return metricsAt(modelKey, r).residual_ser; });
-
-    if (chart) chart.destroy();
-    chart = new Chart(document.getElementById("budget-chart"), {
-      type: "bar",
-      data: {
-        labels: labels,
-        datasets: [
-          { label: "Baseline recall %", data: baseRec, backgroundColor: "#64748b88", yAxisID: "y" },
-          { label: ((MathGuard.MODEL_META[modelKey] || {}).label || modelKey) + " recall %", data: modRec, backgroundColor: "#2563eb88", yAxisID: "y" },
-          { label: "Baseline residual SER", data: baseSer, type: "line", borderColor: "#94a3b8", yAxisID: "y1", tension: 0, pointRadius: 4 },
-          { label: "Model residual SER", data: modSer, type: "line", borderColor: "#93c5fd", yAxisID: "y1", tension: 0, pointRadius: 4 }
-        ]
-      },
-      options: {
-        responsive: true,
-        scales: {
-          y: { position: "left", title: { display: true, text: "Recall (%)" }, min: 0, max: 100 },
-          y1: { position: "right", title: { display: true, text: "Residual SER" }, grid: { drawOnChartArea: false }, min: 0 }
-        },
-        plugins: { legend: { position: "bottom" } }
-      }
-    });
-  }
-
-  function buildChips() {
-    var rates = (DATA && DATA.review_rates) || [0.2, 0.3, 0.5];
-    var box = document.getElementById("budget-chips");
-    box.innerHTML = "";
-    rates.forEach(function (r) {
-      var btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "chip" + (Math.abs(r - rate) < 1e-6 ? " active" : "");
-      btn.textContent = Math.round(r * 100) + "%";
-      btn.setAttribute("aria-pressed", Math.abs(r - rate) < 1e-6 ? "true" : "false");
-      btn.addEventListener("click", function () {
-        rate = r;
-        box.querySelectorAll(".chip").forEach(function (c) {
-          c.classList.remove("active");
-          c.setAttribute("aria-pressed", "false");
-        });
-        btn.classList.add("active");
-        btn.setAttribute("aria-pressed", "true");
-        update();
-      });
-      box.appendChild(btn);
-    });
-  }
-
-  MathGuard.init({
-    page: "explore",
-    onData: function (data) {
-      DATA = data;
-      buildChips();
-      document.getElementById("model-select").addEventListener("change", update);
-      update();
-    }
-  });
-})();
-</script>
+<script>MathGuard.init({ page: "explore" });</script>
 </body>
 </html>

@@ -3,63 +3,29 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Limitations · MathGuard · ES 335</title>
+  <title>Limitations · ES 335 Math Recognition Error Prediction</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script>
+(function(){try{var t=localStorage.getItem("mathguard-theme");if(t!=="light"&&t!=="dark")t=window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.setAttribute("data-theme",t);}catch(e){document.documentElement.setAttribute("data-theme","light");}})();
+</script>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
-<header class="site-header">
-  <div class="wrap">
-    <h1>Limitations</h1>
-    <p class="subtitle">What we claim — and what we do not</p>
-    <div class="badge-row">
-      <span class="badge badge-synthetic">Synthetic development data</span>
-      <span class="badge badge-course">ES 335 · IITGN</span>
-    </div>
-  </div>
-</header>
 <nav class="nav" id="site-nav" aria-label="Primary"></nav>
 <main id="main" class="wrap">
-  <div id="breadcrumb" class="breadcrumb"></div>
   <div id="step-progress"></div>
-
-  <div class="in-short">
-    <strong>In short.</strong>
-    We claim method performance on this recogniser setup and this development proxy (and course scans when available).
-    We do not claim transfer to other scanners or a statistically stable superiority with only six test groups.
-  </div>
-
-  <section>
-    <h2>What we claim</h2>
-    <p>
-      On this feature set and development proxy, a learned flagger can rank lines so that, at the same review budget,
-      more true recognition errors are caught than by a fixed confidence threshold. All gains are reported with
-      student-level bootstrap intervals.
-    </p>
-  </section>
-
-  <section>
-    <h2>What we do not claim</h2>
-    <ul class="check">
-      <li>Transfer to other recognisers, scanners, subjects, or assignment formats.</li>
-      <li>That digitisation alone makes grading correct.</li>
-      <li>Statistically stable superiority: Δ intervals currently include zero.</li>
-      <li>Token or time savings unless measured with logged settings.</li>
-    </ul>
-  </section>
-
-  <section>
-    <h2>Known limitations</h2>
-    <ul class="check">
-      <li>Small test set (six student groups) → wide confidence intervals.</li>
-      <li>Development proxy, not yet IITGN course scripts.</li>
-      <li>Line detector is a research prototype.</li>
-      <li>Real HMER weights optional; proxy path used for offline reproducibility.</li>
-    </ul>
-  </section>
-
-  <nav class="page-nav" id="page-nav" aria-label="Page"></nav>
+  <div id="breadcrumb" class="breadcrumb"></div>
+  <h1>Limitations</h1>
+  <ul class="check">
+    <li>Writer IDs unavailable → possible writer-level leakage.</li>
+    <li>Degradation is simulated, not real scanner noise.</li>
+    <li>Recogniser used off-the-shelf (no fine-tuning).</li>
+    <li>Sample size and group count limited by MathWriting subset and compute.</li>
+  </ul>
+  <div id="page-nav" class="page-nav"></div>
 </main>
 <footer class="site-footer"><div class="wrap"><p>ES 335 · IIT Gandhinagar · 2026</p></div></footer>
 <script src="app.js"></script>
