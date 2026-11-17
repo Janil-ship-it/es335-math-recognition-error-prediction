@@ -19,18 +19,92 @@
   <div id="step-progress"></div>
   <div id="breadcrumb" class="breadcrumb"></div>
   <h1>Results</h1>
-  <p class="note">Metrics load from <code>data/site_results.json</code>. Until final evaluation finishes, values show as “—”.</p>
-  <div class="table-wrap">
-    <table>
-      <thead><tr><th>Model</th><th class="num">PR-AUC</th><th class="num">Δ vs baseline</th><th class="num">Recall@20</th><th class="num">Recall@30</th><th class="num">Recall@50</th><th class="num">Brier</th></tr></thead>
-      <tbody id="results-tbody" data-loading><tr><td colspan="7">Loading…</td></tr></tbody>
-    </table>
+
+  <div class="callout callout-warning">
+    Metrics load from <code>data/site_results.json</code>. The model chosen for qualitative review is the one
+    selected by the one-standard-error rule on development CV (Logistic regression), never the model with the highest test PR-AUC.
+    Bootstrap intervals for Δ vs baseline frequently include zero; we do not claim a conclusive win.
   </div>
+
+  <section>
+    <h2>Held-out test metrics</h2>
+    <p class="note">PR-AUC, recall at fixed review budgets, residual SER and Brier score. CIs are group-level bootstrap. Rows marked <span class="pill">CV 1-SE</span> are the model selected on development data.</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Model</th>
+            <th class="num">PR-AUC</th>
+            <th class="num">Δ vs baseline</th>
+            <th class="num">Recall@20</th>
+            <th class="num">Recall@30</th>
+            <th class="num">Recall@50</th>
+            <th class="num">Brier</th>
+          </tr>
+        </thead>
+        <tbody id="results-tbody" data-loading>
+          <tr><td colspan="7">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Recall versus review budget</h2>
+    <p class="note">Operating points at 20&nbsp;%, 30&nbsp;% and 50&nbsp;% from the evaluation export. Higher is better.</p>
+    <div class="chart-box">
+      <canvas id="budget-chart" height="280" aria-label="Recall versus review budget by model"></canvas>
+    </div>
+  </section>
+
+  <section>
+    <h2>Residual SER after review</h2>
+    <p class="note">Average symbol error rate on the unreviewed remainder. Lower is better.</p>
+    <div class="chart-box">
+      <canvas id="residual-chart" height="260" aria-label="Residual SER versus review budget"></canvas>
+    </div>
+  </section>
+
+  <section>
+    <h2>Precision–Recall curves</h2>
+    <p class="note">From the evaluation export (interpolated for visualization when a full threshold sweep is not stored).</p>
+    <div class="chart-box">
+      <canvas id="pr-chart" height="280" aria-label="Precision-recall curves by model"></canvas>
+    </div>
+  </section>
+
+  <section>
+    <h2>Feature importance (logistic coefficients)</h2>
+    <p class="note">Signed standardised coefficients. Positive → higher predicted risk of needing correction.</p>
+    <div class="chart-box">
+      <canvas id="fi-chart" height="320" aria-label="Logistic regression feature coefficients"></canvas>
+    </div>
+  </section>
+
+  <section>
+    <h2>How to read the numbers</h2>
+    <ul>
+      <li>Development results (CV) are used only for model selection and hyper-parameter choice.</li>
+      <li>Test results are reported once, after models are frozen.</li>
+      <li>The 1-SE CV-selected model is Logistic regression; it is used for review decisions even if Random Forest has a higher test PR-AUC.</li>
+      <li>Shuffled-label control should lie near the positive-class prevalence.</li>
+    </ul>
+  </section>
+
   <div id="page-nav" class="page-nav"></div>
 </main>
 <footer class="site-footer"><div class="wrap"><p>ES 335 · IIT Gandhinagar · 2026</p></div></footer>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="app.js"></script>
-<script>MathGuard.init({ page: "results", table: "results-tbody" });</script>
+<script>
+  MathGuard.init({
+    page: "results",
+    table: "results-tbody",
+    budgetChart: "budget-chart",
+    residualChart: "residual-chart",
+    featureChart: "fi-chart",
+    prChart: "pr-chart"
+  });
+</script>
 </body>
 </html>
