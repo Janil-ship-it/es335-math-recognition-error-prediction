@@ -13,7 +13,7 @@ The site is multi-page:
 | [Home](docs/index.html) | Research question & key takeaway |
 | [Data](docs/data.html) | Sources, variables, MathWriting citation |
 | [Methods](docs/methods.html) | Pipeline, models, evaluation design |
-| [Results](docs/results.html) | Held-out metrics & uncertainty |
+| [Results](docs/results.html) | Held-out metrics, PR curves, feature importance |
 | [Explore](docs/explore.html) | Interactive review-budget lab + region explorer |
 | [Limitations](docs/limitations.html) | Claims & limitations |
 | [Reproduce](docs/reproduce.html) | Commands, citations, AI disclosure |
@@ -31,7 +31,7 @@ python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 python -m src.data_generator      # data/features.csv + data/splits.json
 python -m src.04_train_cv         # grouped CV (never touches test)
-python -m src.05_evaluate_test    # single final test evaluation
+python -m src.05_evaluate_test    # single final test evaluation + docs JSON
 pytest tests/ -q
 # open docs/index.html
 ```
@@ -42,10 +42,22 @@ pytest tests/ -q
 |---|---|---|---|
 | Confidence threshold | 0.715 | — | 35.9% |
 | Logistic regression | 0.816 | +0.100 [−0.006, 0.190] | 42.4% |
+| SVM (RBF) | 0.815 | +0.100 [−0.015, 0.152] | 40.2% |
 | Random forest | 0.830 | +0.115 [−0.007, 0.186] | 41.3% |
 
 Shuffled-label control ≈ 0.56 (near prevalence → no obvious leakage).  
 Full table, residual-error curves, and interactive laboratory: **[docs/explore.html](docs/explore.html)**.
+
+## Pipeline modules
+
+| Script | Role |
+|--------|------|
+| `src/01_extract_regions.py` | OpenCV line detector + preprocessing |
+| `src/02_recognise.py` | HMER interface (proxy + real-model hook) |
+| `src/03_features.py` | Image quality, structure, confidence features |
+| `src/data_generator.py` | Development proxy dataset (Plan B) |
+| `src/04_train_cv.py` | Grouped 5-fold CV + feature ablation |
+| `src/05_evaluate_test.py` | Single test evaluation, bootstrap CIs, site JSON |
 
 ## Data access
 
@@ -54,18 +66,17 @@ Full table, residual-error curves, and interactive laboratory: **[docs/explore.h
 
 Splits are fixed in `data/splits.json` before modelling.
 
-## Citations
-
-- **MathWriting** — Gervais, P., et al. *MathWriting: A Dataset For Handwritten Mathematical Expression Recognition*. arXiv:2404.10690, 2024. CC BY-NC-SA 4.0. https://arxiv.org/abs/2404.10690
-- Candidate recognisers (inference only, not fine-tuned): TexTeller, UniMERNet.
-- Evaluation follows course SPEC: grouped splits, PR-AUC, review-rate recall, student-level bootstrap.
-
 ## Design rules
 
 - Split by student/writer group only  
 - Forbidden features: reference text, marks, student ID, question ID  
 - Test set touched only in `05_evaluate_test.py`  
 - Primary metric: PR-AUC; report missed errors at fixed review rates  
+
+## Citations
+
+- **MathWriting** — Gervais, P., et al. *MathWriting: A Dataset For Handwritten Mathematical Expression Recognition*. arXiv:2404.10690, 2024. CC BY-NC-SA 4.0. https://arxiv.org/abs/2404.10690
+- Candidate recognisers (inference only, not fine-tuned): TexTeller, UniMERNet.
 
 ## AI-use disclosure
 
