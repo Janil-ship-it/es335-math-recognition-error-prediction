@@ -138,3 +138,61 @@ class SimpleRandomForest:
         return preds / len(self.trees)
     def predict(self, X):
         return (self.predict_proba(X) >= 0.5).astype(int)
+
+
+# ---------------------------------------------------------------------------
+# Optional scikit-learn wrappers (preferred when available)
+# ---------------------------------------------------------------------------
+try:
+    from sklearn.linear_model import LogisticRegression as SkLogisticRegression
+    from sklearn.ensemble import RandomForestClassifier as SkRandomForest
+    from sklearn.svm import SVC
+    from sklearn.calibration import CalibratedClassifierCV
+    from sklearn.pipeline import Pipeline
+    from sklearn.preprocessing import StandardScaler
+    HAS_SKLEARN = True
+except ImportError:
+    HAS_SKLEARN = False
+
+
+@dataclass
+class SklearnSVM:
+    """RBF SVM with probability calibration (Platt scaling via CalibratedClassifierCV)."""
+    C: float = 1.0
+    gamma: str = "scale"
+    seed: int = 42
+    pipeline_ = None
+
+    def fit(self, X, y):
+        if not HAS_SKLEARN:
+            raise RuntimeError("scikit-learn is required for SklearnSVM")
+        base = SVC(C=self.C, kernel="rbf", gamma=self.gamma, probability=False,
+                   class_weight="balanced", random_state=self.seed)
+        calibrated = CalibratedClassifierCV(base, method="sigmoid", cv=3)
+        self.pipeline_ = Pipeline([
+            ("scaler", StandardScaler()),
+            ("clf", calibrated),
+        ])
+        self.pipeline_.fit(X, y)
+        return self
+
+    def predict_proba(self, X):
+        return self.pipeline_.predict_proba(X)[:, 1]
+
+    def predict(self, X):
+        return (self.predict_proba(X) >= 0.5).astype(int)
+
+
+def get_model(name: str, seed: int = 42):
+    """Factory used by training / evaluation scripts."""
+    if name == "baseline_confidence":
+        return FixedConfidenceBaseline()
+    if name == "logistic_l2":
+        return LogisticRegressionL2(C=1.0)
+    if name == "random_forest":
+        return SimpleRandomForest(n_estimators=40, max_depth=4, seed=seed)
+    if name == "svm_rbf":
+        if HAS_SKLEARN:
+            return SklearnSVM(C=1.0, seed=seed)
+        return LogisticRegressionL2(C=1.0)
+    raise ValueError(f"Unknown model: {name}")
