@@ -53,8 +53,11 @@ def evaluate():
 
     cv_path = RESULTS_DIR / "cv_results.json"
     best_params = {}
+    chosen_by_1se = None
     if cv_path.exists():
-        best_params = json.load(open(cv_path)).get("best_params", {})
+        cv_blob = json.load(open(cv_path))
+        best_params = cv_blob.get("best_params", {})
+        chosen_by_1se = cv_blob.get("chosen_by_1se")
 
     model_names = ["baseline_confidence", "logistic_l2", "random_forest"]
     if HAS_SKLEARN:
@@ -163,10 +166,22 @@ def evaluate():
         }
     metrics["by_degradation"] = deg
 
-    best_name = max(
-        [n for n in model_names if n != "baseline_confidence"],
-        key=lambda n: metrics[n]["pr_auc"],
-    )
+    # Model for error-review examples MUST be selected from CV (1SE rule),
+    # never from test metrics. This keeps the test set strictly for evaluation.
+    if chosen_by_1se and chosen_by_1se.get("model") in models:
+        best_name = chosen_by_1se["model"]
+    else:
+        # Fallback only if CV results are missing (should not happen in normal pipeline).
+        # Prefer logistic as a simple default rather than max test PR-AUC.
+        best_name = "logistic_l2" if "logistic_l2" in models else (
+            next((n for n in model_names if n != "baseline_confidence"), "baseline_confidence")
+        )
+    metrics["selected_for_review"] = {
+        "model": best_name,
+        "source": "cv_chosen_by_1se" if chosen_by_1se else "fallback_no_cv",
+        "cv_chosen": chosen_by_1se,
+    }
+
     scores_best = preds[f"score_{best_name}"].values
     k30 = max(1, int(round(0.3 * n)))
     order = np.argsort(-scores_best)
