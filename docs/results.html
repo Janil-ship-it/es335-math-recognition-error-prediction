@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Results · Handwritten Math Error Prediction · ES 335</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap">
+    <h1>Which Handwritten Math Lines Can We Trust?</h1>
+    <p class="subtitle">Held-out metrics, uncertainty, and residual error</p>
+    <p class="meta">ES 335 · IIT Gandhinagar · Janil Jain &amp; Manan Parmar</p>
+  </div>
+</header>
+
+<nav class="nav">
+  <div class="wrap nav-inner">
+    <a href="index.html">Home</a>
+    <a href="data.html">Data</a>
+    <a href="methods.html">Methods</a>
+    <a href="results.html" class="active">Results</a>
+    <a href="explore.html">Explore</a>
+    <a href="limitations.html">Limitations</a>
+    <a href="reproduce.html">Reproduce</a>
+    <a class="repo-link" href="https://github.com/Janil-ship-it/es335-math-recognition-error-prediction" target="_blank" rel="noopener">GitHub</a>
+  </div>
+</nav>
+
+<main class="wrap wide">
+  <section>
+    <h2>Held-out test performance</h2>
+    <p class="note">All numbers below come from a single evaluation on the six held-out student groups. Bootstrap CIs are over students (2 000 resamples).</p>
+    <div id="metrics-table-wrap">
+      <table id="metrics-table">
+        <thead>
+          <tr>
+            <th>Model</th>
+            <th>PR-AUC</th>
+            <th>Δ vs baseline</th>
+            <th>Recall@20%</th>
+            <th>Recall@30%</th>
+            <th>Recall@50%</th>
+            <th>Brier</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Precision–Recall curves</h2>
+    <div class="chart-box">
+      <canvas id="pr-chart" height="280"></canvas>
+    </div>
+  </section>
+
+  <section>
+    <h2>Feature importance (logistic coefficients)</h2>
+    <p class="note">Signed coefficients after standardisation. Positive → higher predicted error risk.</p>
+    <div class="chart-box">
+      <canvas id="fi-chart" height="320"></canvas>
+    </div>
+  </section>
+
+  <section>
+    <h2>Integrity checks</h2>
+    <div id="integrity" class="stats-grid"></div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <p>ES 335 · Machine Learning · IIT Gandhinagar · 2026</p>
+  </div>
+</footer>
+
+<script>
+const MODEL_LABELS = {
+  baseline_confidence: "Confidence baseline",
+  logistic_l2: "Logistic regression",
+  random_forest: "Random forest",
+  svm_rbf: "SVM (RBF)",
+};
+const COLORS = {
+  baseline_confidence: "#64748b",
+  logistic_l2: "#2563eb",
+  random_forest: "#7c3aed",
+  svm_rbf: "#059669",
+};
+
+async function load() {
+  const res = await fetch("data/site_results.json");
+  const data = await res.json();
+  const m = data.metrics;
+
+  const tbody = document.querySelector("#metrics-table tbody");
+  const order = ["baseline_confidence", "logistic_l2", "svm_rbf", "random_forest"];
+  for (const k of order) {
+    if (!m[k] || !m[k].pr_auc) continue;
+    const r = m[k];
+    const tr = document.createElement("tr");
+    const delta = r.delta_vs_baseline != null
+      ? `${r.delta_vs_baseline >= 0 ? "+" : ""}${r.delta_vs_baseline.toFixed(3)} [${r.delta_ci[0].toFixed(3)}, ${r.delta_ci[1].toFixed(3)}]`
+      : "—";
+    tr.innerHTML = `
+      <td><strong>${MODEL_LABELS[k] || k}</strong></td>
+      <td>${r.pr_auc.toFixed(3)} <span class="ci">[${r.pr_auc_ci[0].toFixed(3)}, ${r.pr_auc_ci[1].toFixed(3)}]</span></td>
+      <td>${delta}</td>
+      <td>${(r["recall@20"]*100).toFixed(1)}%</td>
+      <td>${(r["recall@30"]*100).toFixed(1)}%</td>
+      <td>${(r["recall@50"]*100).toFixed(1)}%</td>
+      <td>${r.brier.toFixed(3)}</td>`;
+    tbody.appendChild(tr);
+  }
+
+  const curves = data.pr_curves || {};
+  const datasets = [];
+  for (const k of order) {
+    if (!curves[k]) continue;
+    datasets.push({
+      label: MODEL_LABELS[k] || k,
+      data: curves[k].recall.map((r, i) => ({x: r, y: curves[k].precision[i]})),
+      borderColor: COLORS[k],
+      backgroundColor: "transparent",
+      pointRadius: 0,
+      tension: 0.15,
+      borderWidth: 2,
+    });
+  }
+  new Chart(document.getElementById("pr-chart"), {
+    type: "line",
+    data: { datasets },
+    options: {
+      responsive: true,
+      scales: {
+        x: { type: "linear", title: { display: true, text: "Recall" }, min: 0, max: 1 },
+        y: { title: { display: true, text: "Precision" }, min: 0, max: 1 },
+      },
+      plugins: { legend: { position: "bottom" } },
+    },
+  });
+
+  const fi = m.feature_importance_logistic || {};
+  const names = Object.keys(fi);
+  const vals = names.map(n => fi[n]);
+  new Chart(document.getElementById("fi-chart"), {
+    type: "bar",
+    data: {
+      labels: names,
+      datasets: [{
+        label: "Coefficient",
+        data: vals,
+        backgroundColor: vals.map(v => v >= 0 ? "#dc2626aa" : "#2563ebaa"),
+      }],
+    },
+    options: {
+      indexAxis: "y",
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: { x: { title: { display: true, text: "Standardised coefficient" } } },
+    },
+  });
+
+  const shuf = m.shuffled_label_control || {};
+  document.getElementById("integrity").innerHTML = `
+    <div class="stat-card"><div class="value">${(shuf.pr_auc || 0).toFixed(3)}</div>
+      <div class="label">Shuffled-label PR-AUC<br><span style="font-weight:400;font-size:0.8rem">near prevalence → no obvious leakage</span></div></div>
+    <div class="stat-card"><div class="value">${data.dataset_stats.n_test_groups}</div>
+      <div class="label">Test students</div></div>
+    <div class="stat-card"><div class="value">${data.dataset_stats.n_test}</div>
+      <div class="label">Test regions</div></div>
+    <div class="stat-card"><div class="value">${(data.dataset_stats.error_rate_test*100).toFixed(0)}%</div>
+      <div class="label">Test error rate</div></div>`;
+}
+load().catch(e => {
+  document.querySelector("main").insertAdjacentHTML("afterbegin",
+    `<div class="callout" style="border-color:var(--danger)">Could not load results JSON: ${e.message}. Run <code>python -m src.05_evaluate_test</code> first.</div>`);
+});
+</script>
+</body>
+</html>
