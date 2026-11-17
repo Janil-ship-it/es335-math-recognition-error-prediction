@@ -19,11 +19,45 @@
   <div id="step-progress"></div>
   <div id="breadcrumb" class="breadcrumb"></div>
   <h1>Error analysis</h1>
-  <p class="note">Missed errors and qualitative review after final evaluation.</p>
+  <section>
+    <h2>What is examined</h2>
+    <p>After the held-out evaluation, regions are ranked by the CV-selected model scores and the top 30% are marked for review. Cases that are truly positive yet fall outside that budget are the misses of interest. The table below is driven by the committed region export (demo set if the full test export is not present).</p>
+  </section>
+  <section>
+    <h2>Regions that need correction</h2>
+    <p id="region-status" class="note">Loading regions…</p>
+    <div class="filters">
+      <label>Filter
+        <select id="region-filter" aria-label="Filter regions">
+          <option value="needs" selected>Needs correction</option>
+          <option value="high_ser">SER &gt; 0.2</option>
+          <option value="all">All</option>
+          <option value="ok">OK</option>
+        </select>
+      </label>
+      <label>Sort
+        <select id="region-sort" aria-label="Sort regions">
+          <option value="ser_desc">SER (high → low)</option>
+          <option value="score_desc">Logistic score (high → low)</option>
+          <option value="score_asc">Logistic score (low → high)</option>
+          <option value="id">Region ID</option>
+        </select>
+      </label>
+    </div>
+    <div id="region-list" class="region-list"></div>
+  </section>
+  <section>
+    <h2>Observed patterns (development proxy)</h2>
+    <ul>
+      <li>Structurally complex expressions remain difficult for the off-the-shelf recogniser.</li>
+      <li>High simulated blur or low contrast tends to lower confidence and raise SER.</li>
+      <li>Short expressions where a single token error produces a large relative SER are labelled positive under the severity target.</li>
+    </ul>
+  </section>
   <div id="page-nav" class="page-nav"></div>
 </main>
 <footer class="site-footer"><div class="wrap"><p>ES 335 · IIT Gandhinagar · 2026</p></div></footer>
 <script src="app.js"></script>
-<script>MathGuard.init({ page: "errors" });</script>
+<script>MathGuard.init({ page: "errors", regions: true, regionFilter: "needs" });</script>
 </body>
 </html>

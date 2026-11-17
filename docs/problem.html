@@ -19,7 +19,10 @@
   <div id="step-progress"></div>
   <div id="breadcrumb" class="breadcrumb"></div>
   <h1>Problem formulation</h1>
-  <p>Research question: Can a learned error-prediction model identify more incorrect handwritten mathematical recognitions than a confidence-based baseline at the same human review budget?</p>
+  <div class="callout callout-warning"><strong>Research question.</strong> Can a learned error-prediction model identify more incorrect handwritten mathematical recognitions than a confidence-based baseline at the same human review budget?</div>
+  <section><h2>Unit of analysis</h2><p>One row is one rendered handwritten mathematical expression together with the recogniser output. Simulated scan degradation is recorded for analysis but never used as a model feature.</p></section>
+  <section><h2>Target</h2><p>After LaTeX normalisation, <code>needs_correction</code> is set from exact mismatch when usable, otherwise from SER above a development-calibrated threshold. Exact mismatch and severe error are not interchangeable.</p></section>
+  <section><h2>Grouping</h2><p>Groups are normalised expression labels. Writer IDs are unavailable, so writer-level leakage cannot be excluded.</p></section>
   <div id="page-nav" class="page-nav"></div>
 </main>
 <footer class="site-footer"><div class="wrap"><p>ES 335 · IIT Gandhinagar · 2026</p></div></footer>
