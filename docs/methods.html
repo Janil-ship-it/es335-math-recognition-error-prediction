@@ -3,67 +3,24 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Methods · MathGuard · ES 335</title>
+  <title>Methods · ES 335 Math Recognition Error Prediction</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script>
+(function(){try{var t=localStorage.getItem("mathguard-theme");if(t!=="light"&&t!=="dark")t=window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.setAttribute("data-theme",t);}catch(e){document.documentElement.setAttribute("data-theme","light");}})();
+</script>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
-<header class="site-header">
-  <div class="wrap">
-    <h1>Methods</h1>
-    <p class="subtitle">Pipeline, models, and evaluation design fixed before comparison</p>
-    <div class="badge-row">
-      <span class="badge badge-synthetic">Synthetic development data</span>
-      <span class="badge badge-course">ES 335 · IITGN</span>
-    </div>
-  </div>
-</header>
 <nav class="nav" id="site-nav" aria-label="Primary"></nav>
 <main id="main" class="wrap">
-  <div id="breadcrumb" class="breadcrumb"></div>
   <div id="step-progress"></div>
-
-  <div class="in-short">
-    <strong>In short.</strong>
-    Grouped 5-fold CV on development students only. Primary metric is PR-AUC. Test students are scored once
-    after models are frozen. Uncertainty is student-level bootstrap.
-  </div>
-
-  <section>
-    <h2>Pipeline</h2>
-    <ol>
-      <li>Capture check and line-level region extraction (OpenCV projection baseline).</li>
-      <li>Light cleaning: grayscale, denoise, contrast stretch.</li>
-      <li>Recognition: pre-trained HMER (inference only). Development path uses a proxy backend.</li>
-      <li>Features: confidence statistics, image quality, structure counts from predicted LaTeX.</li>
-      <li>Flagger ranks by <span class="mono">P(needs_correction)</span>; top fraction goes to human review.</li>
-    </ol>
-  </section>
-
-  <section>
-    <h2>Models</h2>
-    <ul class="check">
-      <li><strong>Fixed confidence threshold (baseline)</strong> — rank by mean or min token confidence (chosen on train folds).</li>
-      <li><strong>Logistic regression (L2)</strong> — standardised features, class weights in training only.</li>
-      <li><strong>Random forest</strong> — shallow trees (depth ≤ 4).</li>
-      <li><strong>SVM (RBF)</strong> — calibrated probabilities via CalibratedClassifierCV.</li>
-    </ul>
-    <p>Selection rule: simplest model within one standard error of the best validation PR-AUC.</p>
-  </section>
-
-  <section>
-    <h2>Evaluation design</h2>
-    <ul class="check">
-      <li>Split by student/writer group only (~20% groups held out as test).</li>
-      <li>Development: 5-fold grouped CV; never touch test for tuning.</li>
-      <li>Primary metric: PR-AUC. Operational: recall of errors at 20%, 30%, 50% review budgets; residual SER.</li>
-      <li>Uncertainty: paired bootstrap over test students (2&nbsp;000 resamples, 95% intervals).</li>
-      <li>Integrity: shuffled-label control; no forbidden features.</li>
-    </ul>
-  </section>
-
-  <nav class="page-nav" id="page-nav" aria-label="Page"></nav>
+  <div id="breadcrumb" class="breadcrumb"></div>
+  <h1>Methods</h1>
+  <p>Features: recogniser confidence, image-quality, mathematical structure counts. Models: confidence baseline, logistic regression, RBF SVM, random forest. Evaluation: grouped CV, one-standard-error selection, held-out test, PR-AUC, recall at review budgets, residual SER, Brier, bootstrap CIs.</p>
+  <div id="page-nav" class="page-nav"></div>
 </main>
 <footer class="site-footer"><div class="wrap"><p>ES 335 · IIT Gandhinagar · 2026</p></div></footer>
 <script src="app.js"></script>

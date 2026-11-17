@@ -3,108 +3,34 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Results · MathGuard · ES 335</title>
+  <title>Results · ES 335 Math Recognition Error Prediction</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script>
+(function(){try{var t=localStorage.getItem("mathguard-theme");if(t!=="light"&&t!=="dark")t=window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.setAttribute("data-theme",t);}catch(e){document.documentElement.setAttribute("data-theme","light");}})();
+</script>
   <link rel="stylesheet" href="style.css" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
-<header class="site-header">
-  <div class="wrap">
-    <h1>Results</h1>
-    <p class="subtitle">Held-out metrics, uncertainty, and feature importance</p>
-    <div class="badge-row">
-      <span class="badge badge-synthetic">Synthetic development data</span>
-      <span class="badge badge-course">ES 335 · IITGN</span>
-    </div>
-  </div>
-</header>
 <nav class="nav" id="site-nav" aria-label="Primary"></nav>
-<main id="main" class="wrap wide">
-  <div id="breadcrumb" class="breadcrumb"></div>
+<main id="main" class="wrap">
   <div id="step-progress"></div>
-
-  <div class="in-short">
-    <strong>In short.</strong>
-    Learned models show higher PR-AUC and higher recall at fixed budgets than the confidence baseline on this proxy.
-    <strong>The 95% CIs for Δ vs baseline include zero</strong> — with six test students we do not claim a stable win.
+  <div id="breadcrumb" class="breadcrumb"></div>
+  <h1>Results</h1>
+  <p class="note">Metrics load from <code>data/site_results.json</code>. Until final evaluation finishes, values show as “—”.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Model</th><th class="num">PR-AUC</th><th class="num">Δ vs baseline</th><th class="num">Recall@20</th><th class="num">Recall@30</th><th class="num">Recall@50</th><th class="num">Brier</th></tr></thead>
+      <tbody id="results-tbody" data-loading><tr><td colspan="7">Loading…</td></tr></tbody>
+    </table>
   </div>
-
-  <div class="callout callout-warning">
-    Numbers below are from the synthetic development proxy, not real student scans. Every cell is loaded from
-    <code>data/site_results.json</code>.
-  </div>
-
-  <section>
-    <h2>Headline stats</h2>
-    <div class="stats-grid" id="result-stats" data-loading></div>
-  </section>
-
-  <section>
-    <h2>Held-out test table</h2>
-    <p class="note">Best PR-AUC row highlighted. CIs are student-level bootstrap.</p>
-    <div class="table-wrap" data-loading>
-      <table aria-label="Model comparison on held-out test groups">
-        <thead>
-          <tr>
-            <th>Model</th>
-            <th class="num">PR-AUC</th>
-            <th class="num">Δ vs baseline</th>
-            <th class="num">Recall@20%</th>
-            <th class="num">Recall@30%</th>
-            <th class="num">Recall@50%</th>
-            <th class="num">Brier</th>
-          </tr>
-        </thead>
-        <tbody id="metrics-tbody"></tbody>
-      </table>
-    </div>
-  </section>
-
-  <section>
-    <h2>Precision–Recall curves</h2>
-    <div class="chart-box">
-      <canvas id="pr-chart" height="280" aria-label="Precision-recall curves by model"></canvas>
-    </div>
-  </section>
-
-  <section>
-    <h2>Feature importance (logistic coefficients)</h2>
-    <p class="note">Signed coefficients after standardisation. Positive → higher predicted error risk.</p>
-    <div class="chart-box">
-      <canvas id="fi-chart" height="320" aria-label="Logistic regression feature coefficients"></canvas>
-    </div>
-  </section>
-
-  <section>
-    <h2>Integrity</h2>
-    <div class="stats-grid" id="integrity-stats" data-loading></div>
-  </section>
-
-  <nav class="page-nav" id="page-nav" aria-label="Page"></nav>
+  <div id="page-nav" class="page-nav"></div>
 </main>
 <footer class="site-footer"><div class="wrap"><p>ES 335 · IIT Gandhinagar · 2026</p></div></footer>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="app.js"></script>
-<script>
-  MathGuard.init({
-    page: "results",
-    stats: "result-stats",
-    table: "metrics-tbody",
-    featureChart: "fi-chart",
-    prChart: "pr-chart",
-    onData: function (data) {
-      var shuf = (data.metrics || {}).shuffled_label_control || {};
-      var ds = data.dataset_stats || {};
-      var el = document.getElementById("integrity-stats");
-      if (!el) return;
-      el.innerHTML =
-        '<div class="stat-card"><div class="value">' + MathGuard.fmt(shuf.pr_auc) + '</div><div class="label">Shuffled-label PR-AUC</div></div>' +
-        '<div class="stat-card"><div class="value">' + (ds.n_test_groups || "—") + '</div><div class="label">Test students</div></div>' +
-        '<div class="stat-card"><div class="value">' + (ds.n_test || "—") + '</div><div class="label">Test regions</div></div>' +
-        '<div class="stat-card"><div class="value">' + MathGuard.pct(ds.error_rate_test, 0) + '</div><div class="label">Test error rate</div></div>';
-    }
-  });
-</script>
+<script>MathGuard.init({ page: "results", table: "results-tbody" });</script>
 </body>
 </html>
