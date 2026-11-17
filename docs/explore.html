@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Explore · Handwritten Math Error Prediction · ES 335</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    .lab-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    @media (max-width: 800px) { .lab-grid { grid-template-columns: 1fr; } }
+    .slider-row { display: flex; align-items: center; gap: 1rem; margin: 1rem 0; }
+    .slider-row input[type=range] { flex: 1; }
+    .metric-pills { display: flex; flex-wrap: wrap; gap: 0.75rem; margin: 1rem 0; }
+    .pill { background: var(--card); border: 1px solid var(--border); border-radius: 999px; padding: 0.45rem 0.9rem; font-size: 0.9rem; }
+    .pill strong { color: var(--accent-dark); }
+    .region-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; margin-bottom: 0.75rem; }
+    .region-card .latex { font-size: 1.1rem; margin: 0.35rem 0; overflow-x: auto; }
+    .region-meta { font-size: 0.85rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 0.75rem; }
+    .badge { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; }
+    .badge-err { background: #fee2e2; color: #991b1b; }
+    .badge-ok { background: #d1fae5; color: #065f46; }
+    .filters { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem; align-items: center; }
+    .filters select, .filters input { padding: 0.4rem 0.6rem; border: 1px solid var(--border); border-radius: 8px; }
+  </style>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap">
+    <h1>Which Handwritten Math Lines Can We Trust?</h1>
+    <p class="subtitle">Interactive review-budget laboratory &amp; region explorer</p>
+    <p class="meta">ES 335 · IIT Gandhinagar · Janil Jain &amp; Manan Parmar</p>
+  </div>
+</header>
+
+<nav class="nav">
+  <div class="wrap nav-inner">
+    <a href="index.html">Home</a>
+    <a href="data.html">Data</a>
+    <a href="methods.html">Methods</a>
+    <a href="results.html">Results</a>
+    <a href="explore.html" class="active">Explore</a>
+    <a href="limitations.html">Limitations</a>
+    <a href="reproduce.html">Reproduce</a>
+    <a class="repo-link" href="https://github.com/Janil-ship-it/es335-math-recognition-error-prediction" target="_blank" rel="noopener">GitHub</a>
+  </div>
+</nav>
+
+<main class="wrap wide">
+  <section>
+    <h2>Review-budget laboratory</h2>
+    <p>Simulate a marker’s review budget. Rank test regions by predicted risk, “correct” the top fraction, and measure how many true errors are caught versus missed.</p>
+
+    <div class="slider-row">
+      <label for="budget">Review budget</label>
+      <input type="range" id="budget" min="10" max="100" step="5" value="30" />
+      <strong id="budget-label">30%</strong>
+    </div>
+
+    <div class="filters">
+      <label>Compare model:
+        <select id="model-select">
+          <option value="logistic_l2">Logistic regression</option>
+          <option value="random_forest">Random forest</option>
+          <option value="svm_rbf">SVM (RBF)</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="lab-grid">
+      <div class="card">
+        <h3 style="margin-top:0">Confidence baseline</h3>
+        <div class="metric-pills" id="base-pills"></div>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0" id="model-title">Logistic regression</h3>
+        <div class="metric-pills" id="model-pills"></div>
+      </div>
+    </div>
+
+    <div class="chart-box" style="margin-top:1.5rem">
+      <canvas id="budget-chart" height="220"></canvas>
+    </div>
+  </section>
+
+  <section>
+    <h2>Region explorer</h2>
+    <p>Test-set regions with predicted risk, confidence, and LaTeX (rendered with KaTeX when possible).</p>
+    <div class="filters">
+      <label>Filter:
+        <select id="filter">
+          <option value="all">All</option>
+          <option value="errors">True errors only</option>
+          <option value="misses">Missed errors (true errors ranked low)</option>
+          <option value="false_alarms">False alarms (correct but high risk)</option>
+        </select>
+      </label>
+      <label>Sort by:
+        <select id="sort">
+          <option value="score_logistic_l2">Logistic risk ↓</option>
+          <option value="score_baseline_confidence">Baseline risk ↓</option>
+          <option value="mean_token_conf">Mean confidence ↑</option>
+        </select>
+      </label>
+    </div>
+    <div id="regions"></div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <p>ES 335 · Machine Learning · IIT Gandhinagar · 2026 · Demo data from held-out test groups</p>
+  </div>
+</footer>
+
+<script>
+const LABELS = {
+  baseline_confidence: "Confidence baseline",
+  logistic_l2: "Logistic regression",
+  random_forest: "Random forest",
+  svm_rbf: "SVM (RBF)",
+};
+
+let DATA = null;
+let REGIONS = [];
+let budgetChart = null;
+
+function renderLatex(el, tex) {
+  if (!tex) { el.textContent = "—"; return; }
+  try {
+    katex.render(tex.replace(/\\\\/g, "\\"), el, { throwOnError: false, displayMode: false });
+  } catch {
+    el.textContent = tex;
+  }
+}
+
+function computeAtBudget(scores, y, ser, rate) {
+  const n = scores.length;
+  const k = Math.max(1, Math.round(rate * n));
+  const order = scores.map((s, i) => [s, i]).sort((a, b) => b[0] - a[0]);
+  const top = order.slice(0, k).map(x => x[1]);
+  const caught = top.filter(i => y[i] === 1).length;
+  const totalErr = y.reduce((a, b) => a + b, 0);
+  const missed = totalErr - caught;
+  const residual = ser.map((s, i) => top.includes(i) ? 0 : s).reduce((a, b) => a + b, 0) / n;
+  return {
+    reviewed: k,
+    caught,
+    missed,
+    recall: totalErr ? caught / totalErr : 0,
+    residual_ser: residual,
+    false_alarms: top.filter(i => y[i] === 0).length,
+  };
+}
+
+function updateLab() {
+  if (!DATA || !REGIONS.length) return;
+  const rate = parseInt(document.getElementById("budget").value, 10) / 100;
+  document.getElementById("budget-label").textContent = Math.round(rate * 100) + "%";
+  const modelKey = document.getElementById("model-select").value;
+  document.getElementById("model-title").textContent = LABELS[modelKey] || modelKey;
+
+  const y = REGIONS.map(r => r.needs_correction);
+  const ser = REGIONS.map(r => r.ser || 0);
+  const baseScores = REGIONS.map(r => r.score_baseline_confidence);
+  const modelScores = REGIONS.map(r => r["score_" + modelKey]);
+
+  const base = computeAtBudget(baseScores, y, ser, rate);
+  const mod = computeAtBudget(modelScores, y, ser, rate);
+
+  const fmt = (o) => `
+    <span class="pill">Reviewed <strong>${o.reviewed}</strong></span>
+    <span class="pill">Errors caught <strong>${o.caught}</strong></span>
+    <span class="pill">Errors missed <strong>${o.missed}</strong></span>
+    <span class="pill">Recall <strong>${(o.recall*100).toFixed(1)}%</strong></span>
+    <span class="pill">Residual SER <strong>${o.residual_ser.toFixed(3)}</strong></span>
+    <span class="pill">False alarms <strong>${o.false_alarms}</strong></span>`;
+  document.getElementById("base-pills").innerHTML = fmt(base);
+  document.getElementById("model-pills").innerHTML = fmt(mod);
+
+  const rates = [], baseRec = [], modRec = [], baseRes = [], modRes = [];
+  for (let p = 10; p <= 100; p += 5) {
+    const r = p / 100;
+    rates.push(p);
+    const b = computeAtBudget(baseScores, y, ser, r);
+    const m = computeAtBudget(modelScores, y, ser, r);
+    baseRec.push(b.recall * 100);
+    modRec.push(m.recall * 100);
+    baseRes.push(b.residual_ser);
+    modRes.push(m.residual_ser);
+  }
+  if (budgetChart) budgetChart.destroy();
+  budgetChart = new Chart(document.getElementById("budget-chart"), {
+    type: "line",
+    data: {
+      labels: rates,
+      datasets: [
+        { label: "Baseline recall %", data: baseRec, borderColor: "#64748b", yAxisID: "y", tension: 0.2, pointRadius: 2 },
+        { label: (LABELS[modelKey] || modelKey) + " recall %", data: modRec, borderColor: "#2563eb", yAxisID: "y", tension: 0.2, pointRadius: 2 },
+        { label: "Baseline residual SER", data: baseRes, borderColor: "#94a3b8", borderDash: [4,4], yAxisID: "y1", tension: 0.2, pointRadius: 0 },
+        { label: "Model residual SER", data: modRes, borderColor: "#93c5fd", borderDash: [4,4], yAxisID: "y1", tension: 0.2, pointRadius: 0 },
+      ],
+    },
+    options: {
+      responsive: true,
+      interaction: { mode: "index", intersect: false },
+      scales: {
+        x: { title: { display: true, text: "Review budget (%)" } },
+        y: { type: "linear", position: "left", title: { display: true, text: "Recall of errors (%)" }, min: 0, max: 100 },
+        y1: { type: "linear", position: "right", title: { display: true, text: "Residual SER" }, grid: { drawOnChartArea: false }, min: 0 },
+      },
+      plugins: { legend: { position: "bottom" } },
+    },
+  });
+}
+
+function updateRegions() {
+  const filter = document.getElementById("filter").value;
+  const sortKey = document.getElementById("sort").value;
+  let list = [...REGIONS];
+  const ranked = [...REGIONS].sort((a, b) => (b.score_logistic_l2 || 0) - (a.score_logistic_l2 || 0));
+  const n = ranked.length;
+  const top30 = new Set(ranked.slice(0, Math.max(1, Math.round(0.3 * n))).map(r => r.region_id));
+
+  if (filter === "errors") list = list.filter(r => r.needs_correction === 1);
+  if (filter === "misses") list = list.filter(r => r.needs_correction === 1 && !top30.has(r.region_id));
+  if (filter === "false_alarms") list = list.filter(r => r.needs_correction === 0 && top30.has(r.region_id));
+
+  list.sort((a, b) => {
+    if (sortKey === "mean_token_conf") return (a.mean_token_conf || 0) - (b.mean_token_conf || 0);
+    return (b[sortKey] || 0) - (a[sortKey] || 0);
+  });
+
+  const root = document.getElementById("regions");
+  root.innerHTML = "";
+  list.slice(0, 40).forEach(r => {
+    const card = document.createElement("div");
+    card.className = "region-card";
+    const badge = r.needs_correction
+      ? `<span class="badge badge-err">needs correction</span>`
+      : `<span class="badge badge-ok">correct</span>`;
+    card.innerHTML = `
+      <div class="region-meta">
+        <span>${r.region_id}</span>
+        <span>group ${r.group_id}</span>
+        ${badge}
+        <span>logistic risk ${(r.score_logistic_l2 || 0).toFixed(3)}</span>
+        <span>baseline risk ${(r.score_baseline_confidence || 0).toFixed(3)}</span>
+        <span>mean conf ${(r.mean_token_conf || 0).toFixed(2)}</span>
+      </div>
+      <div><strong>Predicted:</strong> <span class="latex pred"></span></div>
+      <div><strong>Reference:</strong> <span class="latex ref"></span></div>`;
+    root.appendChild(card);
+    renderLatex(card.querySelector(".pred"), r.recogniser_latex);
+    renderLatex(card.querySelector(".ref"), r.reference_latex);
+  });
+  if (!list.length) root.innerHTML = "<p class='note'>No regions match this filter.</p>";
+}
+
+async function init() {
+  const [siteRes, regRes] = await Promise.all([
+    fetch("data/site_results.json"),
+    fetch("data/demo_regions.json"),
+  ]);
+  DATA = await siteRes.json();
+  REGIONS = await regRes.json();
+  document.getElementById("budget").addEventListener("input", updateLab);
+  document.getElementById("model-select").addEventListener("change", updateLab);
+  document.getElementById("filter").addEventListener("change", updateRegions);
+  document.getElementById("sort").addEventListener("change", updateRegions);
+  updateLab();
+  updateRegions();
+}
+init().catch(e => {
+  document.querySelector("main").insertAdjacentHTML("afterbegin",
+    `<div class="callout" style="border-color:var(--danger)">Could not load demo data: ${e.message}</div>`);
+});
+</script>
+</body>
+</html>
