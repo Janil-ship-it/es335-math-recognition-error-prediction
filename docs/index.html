@@ -85,7 +85,7 @@ code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.86em;
     <p class="eyebrow">ES 335 · Machine Learning · IIT Gandhinagar</p>
     <h1>Which handwritten math lines can we trust?</h1>
     <p>
-      After a recogniser turns a student’s line into LaTeX, which lines are likely wrong—
+      After a recogniser turns a student’s line into LaTeX, which lines are likely wrong;
       so a marker only reviews those? Every number below is from the held-out test groups.
       Move the controls and the metrics recompute.
     </p>
@@ -206,11 +206,11 @@ code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.86em;
       </tr>
     </tbody>
   </table>
-  <p class="note"><strong>Integrity.</strong> Shuffled-label control PR-AUC ≈ 0.56 (near prevalence) — no obvious leakage.</p>
+  <p class="note"><strong>Integrity.</strong> Shuffled-label control PR-AUC ≈ 0.56 (near prevalence) : no obvious leakage.</p>
 </section>
 
 <section id="s6">
-  <h2><span class="n">6</span> Review budget — made movable</h2>
+  <h2><span class="n">6</span> Review budget made movable</h2>
   <p class="lede">
     Choose what fraction of lines a marker is willing to check. Bars and cards show the share of
     true errors caught if that top fraction were reviewed (held-out test scores).
@@ -259,13 +259,13 @@ code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.86em;
     <span><i class="dot" style="background:#63045a"></i>Logistic</span>
     <span><i class="dot" style="background:#006970"></i>Forest</span>
   </div>
-  <p class="note"><strong>Where the models help.</strong> Misses tend to be moderate-confidence lines with poor image quality or complex structure — exactly where non-confidence features matter. Residual SER after reviewing the top 30% falls from ~0.13 (baseline) to ~0.12 (logistic).</p>
+  <p class="note"><strong>Where the models help.</strong> Misses tend to be moderate-confidence lines with poor image quality or complex structure, exactly where non-confidence features matter. Residual SER after reviewing the top 30% falls from ~0.13 (baseline) to ~0.12 (logistic).</p>
 </section>
 
 <section id="s8">
   <h2><span class="n">8</span> Limitations and claims</h2>
   <ul class="clean">
-    <li><strong>Proxy data.</strong> Not real course scans. We claim a working methodology and ranking gains under this recogniser behaviour — not operational accuracy on IITGN scripts until Plan A runs.</li>
+    <li><strong>Proxy data.</strong> Not real course scans. We claim a working methodology and ranking gains under this recogniser behaviour, not operational accuracy on IITGN scripts until Plan A runs.</li>
     <li><strong>Small test set.</strong> Six groups → wide CIs; deltas vs baseline are not yet significant at 95%.</li>
     <li><strong>One recogniser profile.</strong> Real TexTeller / UniMERNet confidences may shift the operating point.</li>
     <li><strong>High base error rate.</strong> Stress-tests ranking; gains may shrink when recognition improves.</li>
