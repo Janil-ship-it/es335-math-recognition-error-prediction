@@ -1,494 +1,137 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Which Handwritten Math Lines Can We Trust? · ES 335</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-<style>
-:root {
-  --ink:#20212a; --muted:#60656c; --teal:#006970; --teal2:#008c91;
-  --purple:#63045a; --orange:#d98200; --red:#b23a48; --green:#25734d; --blue:#3f5aa8;
-  --paper:#fff; --canvas:#f2f6f7; --line:#cfdbde; --soft:#e8f1f2;
-  --radius:8px;
-}
-* { box-sizing:border-box; }
-html { scroll-behavior:smooth; }
-body { margin:0; background:var(--canvas); color:var(--ink);
-  font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-  line-height:1.5; overflow-x:hidden; }
-button,input,select { font:inherit; }
-button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible { outline:3px solid rgba(0,105,112,.25); outline-offset:2px; }
-.wrap { width:min(1080px,calc(100vw - 40px)); margin:0 auto; }
-header { background:var(--paper); border-bottom:1px solid var(--line); padding:22px 0 20px; }
-.eyebrow { color:var(--teal); font-size:.76rem; font-weight:750; text-transform:uppercase; margin:0 0 5px; }
-h1 { font-size:clamp(1.55rem,4vw,2.25rem); line-height:1.15; margin:0 0 8px; letter-spacing:-.01em; }
-header p { max-width:72ch; color:var(--muted); margin:0; }
-header .meta { margin-top:8px; font-size:.85rem; }
-header .meta a { color:var(--teal); font-weight:650; text-decoration:none; }
-header .meta a:hover { text-decoration:underline; }
-nav { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:1px; background:var(--line); border:1px solid var(--line); border-radius:6px; overflow:hidden; margin-top:17px; }
-nav a { background:#fff; color:var(--ink); text-decoration:none; padding:9px 11px; font-size:.78rem; font-weight:650; }
-nav a:hover { background:var(--soft); }
-main { padding:24px 0 56px; }
-section { background:var(--paper); border:1px solid var(--line); border-radius:var(--radius); padding:20px 22px 23px; margin-bottom:20px; scroll-margin-top:12px; }
-section:target { border-color:#72aaa8; box-shadow:0 0 0 3px rgba(0,105,112,.08); }
-h2 { font-size:1.15rem; margin:0 0 5px; display:flex; gap:10px; align-items:center; }
-.n { display:grid; place-items:center; width:27px; height:27px; border-radius:50%; background:var(--soft); color:var(--teal); font-size:.78rem; flex:none; font-weight:700; }
-.lede { color:var(--muted); margin:0 0 15px; max-width:80ch; }
-.grid2 { display:grid; grid-template-columns:minmax(0,1.15fr) minmax(245px,.85fr); gap:18px; align-items:start; }
-.grid3 { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
-canvas { width:100%; height:auto; display:block; background:#fff; border:1px solid var(--line); border-radius:6px; }
-.controls { background:var(--canvas); border:1px solid var(--line); border-radius:6px; padding:13px; display:grid; gap:11px; }
-.control { display:grid; grid-template-columns:1fr auto; gap:6px 10px; align-items:center; }
-.control label { font-size:.83rem; color:var(--muted); }
-.control output { font:650 .84rem ui-monospace,SFMono-Regular,Menlo,monospace; color:var(--teal); }
-.control input[type=range] { grid-column:1/-1; width:100%; accent-color:var(--teal); }
-.buttons { display:flex; gap:8px; flex-wrap:wrap; }
-button { border:1px solid var(--teal); border-radius:5px; background:var(--teal); color:#fff; padding:7px 11px; cursor:pointer; font-weight:650; font-size:.83rem; }
-button.secondary { background:#fff; color:var(--teal); }
-button[aria-pressed=true] { background:var(--purple); border-color:var(--purple); color:#fff; }
-.readout { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin-top:13px; }
-.stat { border:1px solid var(--line); border-radius:6px; padding:9px 10px; background:#fbfcfc; min-width:0; }
-.stat span { display:block; color:var(--muted); font-size:.68rem; text-transform:uppercase; letter-spacing:.03em; }
-.stat strong { display:block; margin-top:2px; font:650 .98rem ui-monospace,SFMono-Regular,Menlo,monospace; overflow-wrap:anywhere; }
-.equation { margin-top:13px; padding:11px 13px; border-left:3px solid var(--teal); background:var(--soft); font:.87rem ui-monospace,SFMono-Regular,Menlo,monospace; overflow-x:auto; }
-.note { margin:13px 0 0; color:var(--muted); font-size:.88rem; }
-.note strong { color:var(--ink); }
-table { width:100%; border-collapse:collapse; font-size:.83rem; }
-th,td { padding:6px 8px; text-align:right; border-bottom:1px solid var(--line); font-variant-numeric:tabular-nums; }
-th:first-child,td:first-child { text-align:left; }
-th { color:var(--muted); font-weight:650; font-size:.72rem; text-transform:uppercase; letter-spacing:.03em; }
-.legend { display:flex; gap:14px; flex-wrap:wrap; color:var(--muted); font-size:.77rem; margin-top:8px; }
-.dot { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:5px; }
-.mini { border:1px solid var(--line); border-radius:6px; padding:10px 12px; background:#fbfcfc; }
-.mini h3 { margin:0 0 4px; font-size:.88rem; }
-.mini p { margin:0; font-size:.86rem; color:var(--muted); }
-ul.clean { margin:0; padding-left:1.15rem; color:var(--muted); font-size:.9rem; }
-ul.clean li { margin-bottom:6px; }
-ul.clean strong { color:var(--ink); }
-footer { color:var(--muted); font-size:.78rem; padding:0 0 28px; }
-footer a { color:var(--teal); font-weight:650; text-decoration:none; }
-code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.86em; background:var(--soft); padding:.1em .35em; border-radius:3px; }
-@media(max-width:760px) {
-  .grid2, .grid3 { grid-template-columns:1fr; }
-  nav { grid-template-columns:repeat(2,minmax(0,1fr)); }
-  .readout { grid-template-columns:repeat(2,minmax(0,1fr)); }
-}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Which Handwritten Math Lines Can We Trust? · ES 335</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-<header>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="site-header">
   <div class="wrap">
-    <p class="eyebrow">ES 335 · Machine Learning · IIT Gandhinagar</p>
     <h1>Which handwritten math lines can we trust?</h1>
-    <p>
-      After a recogniser turns a student’s line into LaTeX, which lines are likely wrong;
-      so a marker only reviews those? Every number below is from the held-out test groups.
-      Move the controls and the metrics recompute.
+    <p class="subtitle">
+      A learned flagger can rank lines so that, at the same review budget, more true recognition errors are caught
+      than by a fixed confidence threshold — with the caveat that bootstrap intervals for the gain still include zero.
     </p>
-    <p class="meta">Janil Jain (25110143) · Manan Parmar (25110229) · Nov 2026 ·
-      <a href="https://github.com/Janil-ship-it/es335-math-recognition-error-prediction">repository</a>
-    </p>
-    <nav>
-      <a href="#s1">1 · Question</a>
-      <a href="#s2">2 · Data</a>
-      <a href="#s3">3 · Models</a>
-      <a href="#s4">4 · Evaluation</a>
-      <a href="#s5">5 · Results</a>
-      <a href="#s6">6 · Review budget</a>
-      <a href="#s7">7 · Errors</a>
-      <a href="#s8">8 · Limits</a>
-    </nav>
+    <div class="badge-row">
+      <span class="badge badge-synthetic" title="Results use a synthetic development proxy, not real course scans">Synthetic development data</span>
+      <span class="badge badge-course">ES 335 · IIT Gandhinagar · 2026</span>
+    </div>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="problem.html">Start the walkthrough</a>
+      <a class="btn btn-secondary" href="explore.html">Try the review lab</a>
+    </div>
+    <p class="meta">Janil Jain (25110143) &amp; Manan Parmar (25110229)</p>
   </div>
 </header>
 
-<main class="wrap">
+<nav class="nav" id="site-nav" aria-label="Primary"></nav>
 
-<section id="s1">
-  <h2><span class="n">1</span> The question</h2>
-  <p class="lede">
-    At the same review budget (20%, 30%, 50% of lines), does a learned flagger catch more true
-    recognition errors than a fixed confidence threshold? A modest or negative result is acceptable.
-  </p>
-  <div class="grid2">
-    <div class="mini">
-      <h3>One row</h3>
-      <p>One <strong>region</strong> = one cropped handwritten math line + the recogniser’s LaTeX.
-      Label <code>needs_correction = 1</code> if normalised LaTeX differs from the reference.</p>
+<main id="main" class="wrap">
+  <section class="fade-in" aria-labelledby="honesty-heading">
+    <h2 id="honesty-heading" class="visually-hidden" style="position:absolute;width:1px;height:1px;overflow:hidden">Read this first</h2>
+    <div class="callout callout-warning">
+      <strong>Read this first.</strong>
+      All experimental numbers on this site come from a <strong>synthetic development proxy</strong>
+      (feature–error links that follow documented HMER failure modes), not from anonymised IITGN course scans.
+      Bootstrap CIs for Δ vs baseline include zero. We do not claim a statistically stable win.
     </div>
-    <div class="mini">
-      <h3>What we never use</h3>
-      <p>Reference text, marks, student ID, question ID. Only image quality, token confidences, and structure counts from the predicted LaTeX.</p>
+  </section>
+
+  <section class="fade-in" aria-labelledby="stats-heading">
+    <h2 id="stats-heading">Headline numbers</h2>
+    <p class="note">Loaded from <code>data/site_results.json</code> · held-out test groups</p>
+    <div class="stats-grid" id="home-stats" data-loading>
+      <div class="stat-card loading"><div class="value">…</div><div class="label">Loading</div></div>
     </div>
-  </div>
-</section>
+  </section>
 
-<section id="s2">
-  <h2><span class="n">2</span> Data</h2>
-  <p class="lede">
-    Plan A (course scans) was not available. Development uses a proxy whose feature–error links
-    follow documented HMER failure modes. The same pipeline is ready for real data.
-  </p>
-  <div class="readout" style="margin-top:0">
-    <div class="stat"><span>Regions</span><strong>690</strong></div>
-    <div class="stat"><span>Student groups</span><strong>28</strong></div>
-    <div class="stat"><span>Dev / test groups</span><strong>22 / 6</strong></div>
-    <div class="stat"><span>Error rate</span><strong>~60%</strong></div>
-    <div class="stat"><span>Dev regions</span><strong>544</strong></div>
-    <div class="stat"><span>Test regions</span><strong>146</strong></div>
-  </div>
-  <div class="grid3" style="margin-top:13px">
-    <div class="mini"><h3>Image</h3><p>blur, contrast, ink density, stroke width, skew, crop size, bg noise</p></div>
-    <div class="mini"><h3>Confidence</h3><p>mean token conf, min token conf, output length</p></div>
-    <div class="mini"><h3>Structure</h3><p>fractions, powers, roots, subscripts in predicted LaTeX</p></div>
-  </div>
-  <p class="note"><strong>Quality.</strong> Proxy data is not real course handwriting. High error rate stress-tests ranking. Six test groups → wide uncertainty intervals.</p>
-</section>
+  <section class="fade-in" aria-labelledby="pipe-heading">
+    <h2 id="pipe-heading">Pipeline</h2>
+    <svg class="pipeline-svg" viewBox="0 0 840 100" role="img" aria-label="Pipeline: Scan, line crop, recogniser, features, flagger, human review">
+      <defs>
+        <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#5a6270" />
+        </marker>
+      </defs>
+      <rect class="node" x="8" y="28" width="100" height="44" rx="8" />
+      <text x="58" y="54">Scan</text>
+      <line class="arrow" x1="112" y1="50" x2="138" y2="50" marker-end="url(#arrowhead)" />
+      <rect class="node" x="142" y="28" width="100" height="44" rx="8" />
+      <text x="192" y="54">Line crop</text>
+      <line class="arrow" x1="246" y1="50" x2="272" y2="50" marker-end="url(#arrowhead)" />
+      <rect class="node" x="276" y="28" width="110" height="44" rx="8" />
+      <text x="331" y="54">Recogniser</text>
+      <line class="arrow" x1="390" y1="50" x2="416" y2="50" marker-end="url(#arrowhead)" />
+      <rect class="node" x="420" y="28" width="100" height="44" rx="8" />
+      <text x="470" y="54">Features</text>
+      <line class="arrow" x1="524" y1="50" x2="550" y2="50" marker-end="url(#arrowhead)" />
+      <rect class="node node-accent" x="554" y="28" width="100" height="44" rx="8" />
+      <text x="604" y="54">Flagger</text>
+      <line class="arrow" x1="658" y1="50" x2="684" y2="50" marker-end="url(#arrowhead)" />
+      <rect class="node" x="688" y="28" width="130" height="44" rx="8" />
+      <text x="753" y="54">Human review</text>
+    </svg>
+  </section>
 
-<section id="s3">
-  <h2><span class="n">3</span> Baseline and models</h2>
-  <p class="lede">Switch the model. The readout cards update from the held-out test metrics.</p>
-  <div class="buttons" id="model-buttons">
-    <button type="button" data-model="baseline" aria-pressed="true">Confidence baseline</button>
-    <button type="button" class="secondary" data-model="logistic" aria-pressed="false">Logistic L2</button>
-    <button type="button" class="secondary" data-model="forest" aria-pressed="false">Random forest</button>
-  </div>
-  <div class="readout" id="model-readout">
-    <div class="stat"><span>PR-AUC</span><strong id="ms-prauc">0.715</strong></div>
-    <div class="stat"><span>Recall @ 30%</span><strong id="ms-r30">35.9%</strong></div>
-    <div class="stat"><span>Brier</span><strong id="ms-brier">0.237</strong></div>
-  </div>
-  <p class="note" id="model-note"><strong>Confidence threshold.</strong> Ranks lines by mean or min token confidence (chosen on train folds). The natural operational baseline.</p>
-</section>
+  <section class="fade-in" aria-labelledby="did-heading">
+    <h2 id="did-heading">What we did</h2>
+    <ol class="timeline">
+      <li>Define the unit: one cropped line + recogniser LaTeX; label = needs correction after normalisation.</li>
+      <li>Build a development proxy with student-level groups and realistic feature–error links.</li>
+      <li>Split by student group only; freeze <code>splits.json</code> before modelling.</li>
+      <li>Train confidence baseline, logistic regression, random forest, and SVM with grouped CV.</li>
+      <li>Evaluate once on held-out students with bootstrap CIs over groups.</li>
+      <li>Ship an interactive review-budget lab driven by precomputed scores.</li>
+    </ol>
+  </section>
 
-<section id="s4">
-  <h2><span class="n">4</span> How we evaluated</h2>
-  <div class="grid2">
-    <div class="mini">
-      <h3>Split</h3>
-      <p>Grouped by student. 22 groups for train/CV, 6 held out. Test touched only once in <code>05_evaluate_test.py</code>. Splits fixed in <code>data/splits.json</code> (seed 42) before modelling.</p>
+  <section class="fade-in" aria-labelledby="find-heading">
+    <h2 id="find-heading">Key findings</h2>
+    <ul class="check">
+      <li>Learned models improve PR-AUC and recall at fixed review budgets relative to a pure confidence threshold on this proxy.</li>
+      <li>With only six test students, the 95% bootstrap intervals for the <em>gains</em> still include zero — we report the uncertainty, not a definitive win.</li>
+      <li>Shuffled-label control scores near prevalence, which is consistent with no obvious leakage.</li>
+    </ul>
+  </section>
+
+  <section class="fade-in" aria-labelledby="walk-heading">
+    <h2 id="walk-heading">Walkthrough</h2>
+    <div class="card-grid">
+      <a class="step-card" href="problem.html"><span class="step-num">Step 1</span><h3>Problem</h3><p>Research question, what one row is, forbidden features.</p></a>
+      <a class="step-card" href="data.html"><span class="step-num">Step 2</span><h3>Data</h3><p>Sources, proxy design, variables, and citations.</p></a>
+      <a class="step-card" href="methods.html"><span class="step-num">Step 3</span><h3>Methods</h3><p>Pipeline, models, grouped CV, evaluation design.</p></a>
+      <a class="step-card" href="results.html"><span class="step-num">Step 4</span><h3>Results</h3><p>Held-out metrics, CIs, feature importance.</p></a>
+      <a class="step-card" href="explore.html"><span class="step-num">Step 5</span><h3>Review lab</h3><p>Interactive budget comparison: baseline vs models.</p></a>
+      <a class="step-card" href="errors.html"><span class="step-num">Step 6</span><h3>Errors</h3><p>Region explorer, misses, and false alarms.</p></a>
+      <a class="step-card" href="limitations.html"><span class="step-num">Step 7</span><h3>Limits</h3><p>What we claim and what we do not.</p></a>
+      <a class="step-card" href="reproduce.html"><span class="step-num">Appendix</span><h3>Reproduce</h3><p>Commands, citations, AI disclosure.</p></a>
     </div>
-    <div class="mini">
-      <h3>Metrics</h3>
-      <p>Primary: <strong>PR-AUC</strong>. Operational: recall of true errors at 20/30/50% review. Residual SER. Paired bootstrap over test students (2000). Shuffled-label control ≈ 0.56.</p>
-    </div>
-  </div>
-  <div class="equation">needs_correction = 1[ normalise(pred) ≠ normalise(ref) ] ·  group split ·  no leakage features</div>
-</section>
+  </section>
 
-<section id="s5">
-  <h2><span class="n">5</span> Held-out results</h2>
-  <p class="lede">Point estimates favour the learned models. Bootstrap intervals for the gains still include zero with six test students.</p>
-  <table>
-    <thead>
-      <tr>
-        <th>Model</th><th>PR-AUC</th><th>Δ vs baseline</th><th>R@20</th><th>R@30</th><th>R@50</th><th>Brier</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>Confidence baseline</td>
-        <td>0.715 [0.641, 0.849]</td><td>—</td>
-        <td>25.0%</td><td>35.9%</td><td>58.7%</td><td>0.237</td>
-      </tr>
-      <tr>
-        <td>Logistic L2</td>
-        <td>0.816 [0.766, 0.874]</td><td>+0.100 [−0.006, 0.190]</td>
-        <td>29.3%</td><td>42.4%</td><td>64.1%</td><td>0.200</td>
-      </tr>
-      <tr>
-        <td>Random forest</td>
-        <td>0.830 [0.771, 0.902]</td><td>+0.115 [−0.007, 0.186]</td>
-        <td>25.0%</td><td>41.3%</td><td>67.4%</td><td>0.195</td>
-      </tr>
-    </tbody>
-  </table>
-  <p class="note"><strong>Integrity.</strong> Shuffled-label control PR-AUC ≈ 0.56 (near prevalence) : no obvious leakage.</p>
-</section>
-
-<section id="s6">
-  <h2><span class="n">6</span> Review budget made movable</h2>
-  <p class="lede">
-    Choose what fraction of lines a marker is willing to check. Bars and cards show the share of
-    true errors caught if that top fraction were reviewed (held-out test scores).
-  </p>
-  <div class="grid2">
-    <div>
-      <canvas id="recall-chart" width="640" height="360"></canvas>
-      <div class="legend">
-        <span><i class="dot" style="background:#94a3b8"></i>Baseline</span>
-        <span><i class="dot" style="background:#63045a"></i>Logistic</span>
-        <span><i class="dot" style="background:#006970"></i>Forest</span>
-      </div>
-    </div>
-    <div>
-      <div class="controls">
-        <div class="control">
-          <label for="rate-slider">Review rate</label>
-          <output id="rate-out">30%</output>
-          <input type="range" id="rate-slider" min="10" max="70" value="30" step="5" />
-        </div>
-        <div class="buttons">
-          <button type="button" class="secondary" data-rate="20">20%</button>
-          <button type="button" data-rate="30" aria-pressed="true">30%</button>
-          <button type="button" class="secondary" data-rate="50">50%</button>
-        </div>
-      </div>
-      <div class="readout">
-        <div class="stat"><span>Baseline catches</span><strong id="live-base">—</strong></div>
-        <div class="stat"><span>Logistic catches</span><strong id="live-lr">—</strong></div>
-        <div class="stat"><span>Forest catches</span><strong id="live-rf">—</strong></div>
-        <div class="stat"><span>Missed (logistic)</span><strong id="live-miss">—</strong></div>
-        <div class="stat"><span>Gain vs baseline</span><strong id="live-gain">—</strong></div>
-        <div class="stat"><span>Residual SER (LR)</span><strong id="live-ser">—</strong></div>
-      </div>
-    </div>
-  </div>
-  <p class="note" id="budget-note"></p>
-</section>
-
-<section id="s7">
-  <h2><span class="n">7</span> Error analysis</h2>
-  <p class="lede">At 30% review the baseline still misses ~64% of true errors; logistic misses ~58%.</p>
-  <canvas id="compare-chart" width="900" height="280"></canvas>
-  <div class="legend">
-    <span><i class="dot" style="background:#94a3b8"></i>Baseline</span>
-    <span><i class="dot" style="background:#63045a"></i>Logistic</span>
-    <span><i class="dot" style="background:#006970"></i>Forest</span>
-  </div>
-  <p class="note"><strong>Where the models help.</strong> Misses tend to be moderate-confidence lines with poor image quality or complex structure, exactly where non-confidence features matter. Residual SER after reviewing the top 30% falls from ~0.13 (baseline) to ~0.12 (logistic).</p>
-</section>
-
-<section id="s8">
-  <h2><span class="n">8</span> Limitations and claims</h2>
-  <ul class="clean">
-    <li><strong>Proxy data.</strong> Not real course scans. We claim a working methodology and ranking gains under this recogniser behaviour, not operational accuracy on IITGN scripts until Plan A runs.</li>
-    <li><strong>Small test set.</strong> Six groups → wide CIs; deltas vs baseline are not yet significant at 95%.</li>
-    <li><strong>One recogniser profile.</strong> Real TexTeller / UniMERNet confidences may shift the operating point.</li>
-    <li><strong>High base error rate.</strong> Stress-tests ranking; gains may shrink when recognition improves.</li>
-  </ul>
-  <p class="note" style="margin-top:15px">
-    <strong>What we claim.</strong> On this setup, logistic and forest improve PR-AUC and error recall at fixed
-    review budgets relative to a confidence threshold, with uncertainty quantified by student-level bootstrap,
-    and with a negative control that does not look like leakage.
-  </p>
-  <div class="equation">git clone … && pip install -r requirements.txt && python -m src.data_generator && python -m src.04_train_cv && python -m src.05_evaluate_test</div>
-</section>
-
+  <section class="fade-in">
+    <h2>Team &amp; repository</h2>
+    <p>Janil Jain (25110143) and Manan Parmar (25110229) · ES 335, IIT Gandhinagar.</p>
+    <p><a href="https://github.com/Janil-ship-it/es335-math-recognition-error-prediction" target="_blank" rel="noopener">github.com/Janil-ship-it/es335-math-recognition-error-prediction</a></p>
+  </section>
 </main>
 
-<footer class="wrap">
-  <p>ES 335 · IIT Gandhinagar · 2026 · AI assistants helped with scaffolding; every experimental number comes from the repository code.
-    <a href="https://github.com/Janil-ship-it/es335-math-recognition-error-prediction">Reproduce it</a>.</p>
+<footer class="site-footer">
+  <div class="wrap">
+    <p>ES 335 · Machine Learning · IIT Gandhinagar · 2026</p>
+    <p>Numbers are produced by repository code on a synthetic development proxy. AI assistants helped with scaffolding; we take responsibility for every result.</p>
+  </div>
 </footer>
 
+<script src="app.js"></script>
 <script>
-(function () {
-  const METRICS = {
-    baseline: {
-      label: "Confidence threshold",
-      note: "Ranks lines by mean or min token confidence (chosen on train folds). The natural operational baseline.",
-      prauc: 0.715, r20: 0.25, r30: 0.3587, r50: 0.5870, brier: 0.237,
-      ser20: 0.1564, ser30: 0.1324, ser50: 0.0910
-    },
-    logistic: {
-      label: "L2 logistic regression",
-      note: "All allowed features, class-balanced, L2 penalty. Selected by grouped CV + one-SE rule on development students.",
-      prauc: 0.816, r20: 0.2935, r30: 0.4239, r50: 0.6413, brier: 0.200,
-      ser20: 0.1519, ser30: 0.1196, ser50: 0.0795
-    },
-    forest: {
-      label: "Random forest",
-      note: "Bagged shallow trees on feature subsets. Non-linear alternative; capacity controlled by depth.",
-      prauc: 0.830, r20: 0.25, r30: 0.4130, r50: 0.6739, brier: 0.195,
-      ser20: 0.1591, ser30: 0.1234, ser50: 0.0792
-    }
-  };
-  function interp(m, rate) {
-    if (rate <= 20) return m.r20 * (rate / 20);
-    if (rate <= 30) return m.r20 + (m.r30 - m.r20) * ((rate - 20) / 10);
-    if (rate <= 50) return m.r30 + (m.r50 - m.r30) * ((rate - 30) / 20);
-    return m.r50 + (1 - m.r50) * ((rate - 50) / 50) * 0.25;
-  }
-  function interpSer(m, rate) {
-    if (rate <= 20) return m.ser20;
-    if (rate <= 30) return m.ser20 + (m.ser30 - m.ser20) * ((rate - 20) / 10);
-    if (rate <= 50) return m.ser30 + (m.ser50 - m.ser30) * ((rate - 30) / 20);
-    return m.ser50 * (1 - (rate - 50) / 100);
-  }
-  document.querySelectorAll("#model-buttons button").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll("#model-buttons button").forEach((b) => {
-        b.setAttribute("aria-pressed", "false");
-        b.classList.add("secondary");
-      });
-      btn.setAttribute("aria-pressed", "true");
-      btn.classList.remove("secondary");
-      const m = METRICS[btn.dataset.model];
-      document.getElementById("ms-prauc").textContent = m.prauc.toFixed(3);
-      document.getElementById("ms-r30").textContent = (m.r30 * 100).toFixed(1) + "%";
-      document.getElementById("ms-brier").textContent = m.brier.toFixed(3);
-      document.getElementById("model-note").innerHTML = "<strong>" + m.label + ".</strong> " + m.note;
-    });
-  });
-  const slider = document.getElementById("rate-slider");
-  const rateOut = document.getElementById("rate-out");
-  const rateBtns = document.querySelectorAll("[data-rate]");
-  function setRate(r) {
-    r = +r;
-    slider.value = r;
-    rateOut.textContent = r + "%";
-    rateBtns.forEach((b) => {
-      const on = +b.dataset.rate === r;
-      b.setAttribute("aria-pressed", on ? "true" : "false");
-      b.classList.toggle("secondary", !on);
-    });
-    renderBudget(r);
-  }
-  slider.addEventListener("input", () => setRate(slider.value));
-  rateBtns.forEach((b) => b.addEventListener("click", () => setRate(b.dataset.rate)));
-  function renderBudget(rate) {
-    const b = interp(METRICS.baseline, rate);
-    const l = interp(METRICS.logistic, rate);
-    const f = interp(METRICS.forest, rate);
-    document.getElementById("live-base").textContent = (b * 100).toFixed(1) + "%";
-    document.getElementById("live-lr").textContent = (l * 100).toFixed(1) + "%";
-    document.getElementById("live-rf").textContent = (f * 100).toFixed(1) + "%";
-    document.getElementById("live-miss").textContent = ((1 - l) * 100).toFixed(0) + "%";
-    document.getElementById("live-gain").textContent =
-      (l - b >= 0 ? "+" : "") + ((l - b) * 100).toFixed(1) + " pp";
-    document.getElementById("live-ser").textContent = interpSer(METRICS.logistic, rate).toFixed(3);
-    document.getElementById("budget-note").innerHTML =
-      "<strong>At " + rate + "% review.</strong> Logistic catches about " +
-      ((l - b) * 100).toFixed(1) + " percentage points more errors than the confidence baseline on the held-out test groups.";
-    drawRecallChart(b, l, f);
-  }
-  function roundRect(ctx, x, y, w, h, r) {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + w, y, x + w, y + h, r);
-    ctx.arcTo(x + w, y + h, x, y + h, r);
-    ctx.arcTo(x, y + h, x, y, r);
-    ctx.arcTo(x, y, x + w, y, r);
-    ctx.closePath();
-  }
-  function drawRecallChart(b, l, f) {
-    const canvas = document.getElementById("recall-chart");
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    const dpr = window.devicePixelRatio || 1;
-    const W = canvas.clientWidth || 640;
-    const H = Math.round(W * 9 / 16);
-    canvas.width = W * dpr;
-    canvas.height = H * dpr;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, W, H);
-    ctx.fillStyle = "#fff";
-    ctx.fillRect(0, 0, W, H);
-    const pad = { l: 48, r: 16, t: 28, b: 40 };
-    const plotW = W - pad.l - pad.r;
-    const plotH = H - pad.t - pad.b;
-    ctx.strokeStyle = "#cfdbde";
-    ctx.lineWidth = 1;
-    for (let i = 0; i <= 4; i++) {
-      const y = pad.t + plotH - (i / 4) * plotH;
-      ctx.beginPath();
-      ctx.moveTo(pad.l, y);
-      ctx.lineTo(pad.l + plotW, y);
-      ctx.stroke();
-      ctx.fillStyle = "#60656c";
-      ctx.font = "11px Inter, system-ui, sans-serif";
-      ctx.textAlign = "right";
-      ctx.fillText(i * 25 + "%", pad.l - 8, y + 4);
-    }
-    ctx.textAlign = "center";
-    ctx.fillText("share of true errors caught", pad.l + plotW / 2, H - 12);
-    const vals = [
-      { v: b, color: "#94a3b8", label: "Baseline" },
-      { v: l, color: "#63045a", label: "Logistic" },
-      { v: f, color: "#006970", label: "Forest" }
-    ];
-    const barW = plotW / 5.5;
-    vals.forEach((d, i) => {
-      const x = pad.l + (i + 0.75) * (plotW / 3);
-      const h = Math.max(0, d.v * plotH);
-      const y = pad.t + plotH - h;
-      ctx.fillStyle = d.color;
-      roundRect(ctx, x - barW / 2, y, barW, h, 5);
-      ctx.fill();
-      ctx.fillStyle = "#20212a";
-      ctx.font = "650 12px Inter, system-ui, sans-serif";
-      ctx.textAlign = "center";
-      ctx.fillText((d.v * 100).toFixed(1) + "%", x, y - 6);
-      ctx.fillStyle = "#60656c";
-      ctx.font = "11px Inter, system-ui, sans-serif";
-      ctx.fillText(d.label, x, pad.t + plotH + 18);
-    });
-  }
-  function drawCompareChart() {
-    const canvas = document.getElementById("compare-chart");
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    const dpr = window.devicePixelRatio || 1;
-    const W = canvas.clientWidth || 900;
-    const H = 280;
-    canvas.width = W * dpr;
-    canvas.height = H * dpr;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, W, H);
-    ctx.fillStyle = "#fff";
-    ctx.fillRect(0, 0, W, H);
-    const pad = { l: 48, r: 16, t: 24, b: 36 };
-    const plotW = W - pad.l - pad.r;
-    const plotH = H - pad.t - pad.b;
-    const rates = [20, 30, 50];
-    const series = [
-      { key: "baseline", color: "#94a3b8" },
-      { key: "logistic", color: "#63045a" },
-      { key: "forest", color: "#006970" }
-    ];
-    ctx.strokeStyle = "#cfdbde";
-    for (let i = 0; i <= 4; i++) {
-      const y = pad.t + plotH - (i / 4) * plotH;
-      ctx.beginPath();
-      ctx.moveTo(pad.l, y);
-      ctx.lineTo(pad.l + plotW, y);
-      ctx.stroke();
-      ctx.fillStyle = "#60656c";
-      ctx.font = "11px Inter, system-ui, sans-serif";
-      ctx.textAlign = "right";
-      ctx.fillText(i * 25 + "%", pad.l - 8, y + 4);
-    }
-    const groupW = plotW / rates.length;
-    const barW = groupW / 5.2;
-    rates.forEach((rate, gi) => {
-      const cx = pad.l + (gi + 0.5) * groupW;
-      series.forEach((s, si) => {
-        const m = METRICS[s.key];
-        const v = rate === 20 ? m.r20 : rate === 30 ? m.r30 : m.r50;
-        const h = v * plotH;
-        const x = cx + (si - 1) * (barW + 5) - barW / 2;
-        const y = pad.t + plotH - h;
-        ctx.fillStyle = s.color;
-        roundRect(ctx, x, y, barW, h, 4);
-        ctx.fill();
-      });
-      ctx.fillStyle = "#60656c";
-      ctx.font = "11px Inter, system-ui, sans-serif";
-      ctx.textAlign = "center";
-      ctx.fillText(rate + "% review", cx, pad.t + plotH + 18);
-    });
-  }
-  setRate(30);
-  drawCompareChart();
-  window.addEventListener("resize", () => {
-    setRate(slider.value);
-    drawCompareChart();
-  });
-})();
+  MathGuard.init({ page: "home", stats: "home-stats" });
 </script>
 </body>
 </html>
