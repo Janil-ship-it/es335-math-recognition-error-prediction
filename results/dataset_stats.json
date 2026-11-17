@@ -1,0 +1,10 @@
+{
+  "n_total": 690,
+  "n_dev": 544,
+  "n_test": 146,
+  "n_dev_groups": 22,
+  "n_test_groups": 6,
+  "error_rate_dev": 0.5974264705882353,
+  "error_rate_test": 0.6301369863013698,
+  "error_rate_overall": 0.6043478260869565
+}
