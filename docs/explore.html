@@ -19,11 +19,61 @@
   <div id="step-progress"></div>
   <div id="breadcrumb" class="breadcrumb"></div>
   <h1>Review lab</h1>
-  <p class="note">Interactive exploration of regions. Loads from <code>data/regions.json</code> when available.</p>
+
+  <div class="callout callout-warning">
+    Adjust the review budget and compare the confidence baseline against the CV-selected model (Logistic regression).
+    Operating points at 20&nbsp;%, 30&nbsp;% and 50&nbsp;% are the exact reported metrics; intermediate values are interpolated for the slider.
+  </div>
+
+  <section>
+    <h2>Review budget simulator</h2>
+    <div class="slider-row">
+      <label for="budget-slider">Send top <strong id="budget-label">30%</strong> of expressions to human review</label>
+      <input type="range" id="budget-slider" min="15" max="55" step="1" value="30" aria-valuemin="15" aria-valuemax="55" aria-valuenow="30" />
+    </div>
+    <div id="lab-metrics" data-loading>
+      <div class="loading-block">Loading evaluation metrics…</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Region explorer</h2>
+    <p id="region-status" class="note">Loading regions…</p>
+    <div class="filters">
+      <label>
+        Filter
+        <select id="region-filter" aria-label="Filter regions">
+          <option value="all">All</option>
+          <option value="needs">Needs correction</option>
+          <option value="ok">OK (no severe error)</option>
+          <option value="high_ser">SER &gt; 0.2</option>
+        </select>
+      </label>
+      <label>
+        Sort
+        <select id="region-sort" aria-label="Sort regions">
+          <option value="ser_desc">SER (high → low)</option>
+          <option value="ser_asc">SER (low → high)</option>
+          <option value="score_desc">Logistic score (high → low)</option>
+          <option value="score_asc">Logistic score (low → high)</option>
+          <option value="id">Region ID</option>
+        </select>
+      </label>
+    </div>
+    <div id="region-list" class="region-list"></div>
+  </section>
+
   <div id="page-nav" class="page-nav"></div>
 </main>
 <footer class="site-footer"><div class="wrap"><p>ES 335 · IIT Gandhinagar · 2026</p></div></footer>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="app.js"></script>
-<script>MathGuard.init({ page: "explore" });</script>
+<script>
+  MathGuard.init({
+    page: "explore",
+    lab: true,
+    regions: true
+  });
+</script>
 </body>
 </html>
