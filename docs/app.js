@@ -1,219 +1,332 @@
+/**
+ * MathGuard shared front-end
+ * Loads docs/data/site_results.json once; never hardcodes experimental numbers.
+ */
 (function () {
-  const METRICS = {
-    baseline: {
-      label: "Confidence threshold",
-      blurb: "Ranks lines by mean or min token confidence (chosen on train folds). The natural operational baseline: flag what the recogniser was unsure about.",
-      prauc: 0.715, r20: 0.25, r30: 0.3587, r50: 0.5870, brier: 0.237,
-      ser20: 0.1564, ser30: 0.1324, ser50: 0.0910
-    },
-    logistic: {
-      label: "L2 logistic regression",
-      blurb: "Uses all allowed features (image quality, confidences, structure), class-balanced, with L2 penalty. Selected by grouped CV + one-SE rule on development students.",
-      prauc: 0.816, r20: 0.2935, r30: 0.4239, r50: 0.6413, brier: 0.200,
-      ser20: 0.1519, ser30: 0.1196, ser50: 0.0795
-    },
-    forest: {
-      label: "Random forest",
-      blurb: "Bagged shallow trees on feature subsets. Non-linear alternative with capacity controlled by depth. Strong ranking on the test set.",
-      prauc: 0.830, r20: 0.25, r30: 0.4130, r50: 0.6739, brier: 0.195,
-      ser20: 0.1591, ser30: 0.1234, ser50: 0.0792
-    }
+  "use strict";
+
+  const STEPS = [
+    { id: "problem", href: "problem.html", title: "Problem", num: 1 },
+    { id: "data", href: "data.html", title: "Data", num: 2 },
+    { id: "methods", href: "methods.html", title: "Methods", num: 3 },
+    { id: "results", href: "results.html", title: "Results", num: 4 },
+    { id: "explore", href: "explore.html", title: "Review lab", num: 5 },
+    { id: "errors", href: "errors.html", title: "Errors", num: 6 },
+    { id: "limitations", href: "limitations.html", title: "Limits", num: 7 },
+  ];
+
+  const MODEL_META = {
+    baseline_confidence: { label: "Confidence baseline", color: "var(--baseline)", colorHex: "#64748b" },
+    logistic_l2: { label: "Logistic regression", color: "var(--logistic)", colorHex: "#2563eb" },
+    random_forest: { label: "Random forest", color: "var(--forest)", colorHex: "#7c3aed" },
+    svm_rbf: { label: "SVM (RBF)", color: "var(--svm)", colorHex: "#0d9488" },
   };
 
-  function interp(m, rate) {
-    if (rate <= 20) return m.r20 * (rate / 20);
-    if (rate <= 30) return m.r20 + (m.r30 - m.r20) * ((rate - 20) / 10);
-    if (rate <= 50) return m.r30 + (m.r50 - m.r30) * ((rate - 30) / 20);
-    return m.r50 + (1 - m.r50) * ((rate - 50) / 50) * 0.25;
-  }
-  function interpSer(m, rate) {
-    if (rate <= 20) return m.ser20;
-    if (rate <= 30) return m.ser20 + (m.ser30 - m.ser20) * ((rate - 20) / 10);
-    if (rate <= 50) return m.ser30 + (m.ser50 - m.ser30) * ((rate - 30) / 20);
-    return m.ser50 * (1 - (rate - 50) / 100);
+  const MODEL_ORDER = ["baseline_confidence", "logistic_l2", "svm_rbf", "random_forest"];
+
+  let cachedData = null;
+  let loadPromise = null;
+
+  function currentPage() {
+    const path = (location.pathname.split("/").pop() || "index.html").toLowerCase();
+    return path || "index.html";
   }
 
-  const desc = document.getElementById("model-desc");
-  const msPrauc = document.getElementById("ms-prauc");
-  const msR30 = document.getElementById("ms-r30");
-  const msBrier = document.getElementById("ms-brier");
-  document.querySelectorAll("#model-toggles .tog").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll("#model-toggles .tog").forEach((b) => b.classList.remove("active"));
-      btn.classList.add("active");
-      const m = METRICS[btn.dataset.model];
-      desc.innerHTML = "<h3>" + m.label + "</h3><p>" + m.blurb + "</p>";
-      msPrauc.textContent = m.prauc.toFixed(3);
-      msR30.textContent = (m.r30 * 100).toFixed(1) + "%";
-      msBrier.textContent = m.brier.toFixed(3);
-    });
-  });
-
-  const slider = document.getElementById("rate-slider");
-  const rateLabel = document.getElementById("rate-label");
-  const chips = document.querySelectorAll(".chip");
-
-  function setRate(r) {
-    slider.value = r;
-    rateLabel.textContent = r + "%";
-    chips.forEach((c) => c.classList.toggle("active", +c.dataset.rate === +r));
-    renderBudget(+r);
-  }
-  slider.addEventListener("input", () => setRate(slider.value));
-  chips.forEach((c) => c.addEventListener("click", () => setRate(c.dataset.rate)));
-
-  function renderBudget(rate) {
-    const b = interp(METRICS.baseline, rate);
-    const l = interp(METRICS.logistic, rate);
-    const f = interp(METRICS.forest, rate);
-    document.getElementById("live-base").textContent = (b * 100).toFixed(1) + "%";
-    document.getElementById("live-lr").textContent = (l * 100).toFixed(1) + "%";
-    document.getElementById("live-rf").textContent = (f * 100).toFixed(1) + "%";
-    document.getElementById("live-miss").textContent = ((1 - l) * 100).toFixed(0) + "%";
-    document.getElementById("live-gain").textContent =
-      (l - b >= 0 ? "+" : "") + ((l - b) * 100).toFixed(1) + " pp";
-    document.getElementById("live-ser").textContent = interpSer(METRICS.logistic, rate).toFixed(3);
-    document.getElementById("budget-note").textContent =
-      "At " + rate + "% review, logistic catches about " + ((l - b) * 100).toFixed(1) +
-      " percentage points more errors than the confidence baseline on the held-out test groups.";
-    drawRecallChart(rate, b, l, f);
+  function pageId() {
+    const p = currentPage().replace(".html", "");
+    return p === "index" ? "home" : p;
   }
 
-  function drawRecallChart(rate, b, l, f) {
-    const canvas = document.getElementById("recall-chart");
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    const dpr = window.devicePixelRatio || 1;
-    const W = canvas.clientWidth || 520;
-    const H = 280;
-    canvas.width = W * dpr;
-    canvas.height = H * dpr;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, W, H);
-    const pad = { l: 48, r: 16, t: 24, b: 40 };
-    const plotW = W - pad.l - pad.r;
-    const plotH = H - pad.t - pad.b;
-    ctx.strokeStyle = "#cbd5e1";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(pad.l, pad.t);
-    ctx.lineTo(pad.l, pad.t + plotH);
-    ctx.lineTo(pad.l + plotW, pad.t + plotH);
-    ctx.stroke();
-    ctx.fillStyle = "#94a3b8";
-    ctx.font = "11px system-ui";
-    ctx.textAlign = "right";
-    for (let i = 0; i <= 4; i++) {
-      const y = pad.t + plotH - (i / 4) * plotH;
-      ctx.beginPath();
-      ctx.moveTo(pad.l - 4, y);
-      ctx.lineTo(pad.l + plotW, y);
-      ctx.strokeStyle = "#e2e8f0";
-      ctx.stroke();
-      ctx.fillStyle = "#94a3b8";
-      ctx.fillText(i * 25 + "%", pad.l - 8, y + 4);
-    }
-    ctx.textAlign = "center";
-    ctx.fillText("share of true errors caught", pad.l + plotW / 2, H - 10);
-    const vals = [
-      { v: b, color: "#94a3b8", label: "Baseline" },
-      { v: l, color: "#7c3aed", label: "Logistic" },
-      { v: f, color: "#0d9488", label: "Forest" }
-    ];
-    const barW = plotW / 5;
-    vals.forEach((d, i) => {
-      const x = pad.l + (i + 0.7) * (plotW / 3);
-      const h = d.v * plotH;
-      const y = pad.t + plotH - h;
-      ctx.fillStyle = d.color;
-      roundRect(ctx, x - barW / 2, y, barW, h, 6);
-      ctx.fill();
-      ctx.fillStyle = "#0f172a";
-      ctx.font = "600 12px system-ui";
-      ctx.textAlign = "center";
-      ctx.fillText((d.v * 100).toFixed(1) + "%", x, y - 6);
-      ctx.fillStyle = "#64748b";
-      ctx.font = "11px system-ui";
-      ctx.fillText(d.label, x, pad.t + plotH + 16);
-    });
-  }
-
-  function roundRect(ctx, x, y, w, h, r) {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + w, y, x + w, y + h, r);
-    ctx.arcTo(x + w, y + h, x, y + h, r);
-    ctx.arcTo(x, y + h, x, y, r);
-    ctx.arcTo(x, y, x + w, y, r);
-    ctx.closePath();
-  }
-
-  function drawCompareChart() {
-    const canvas = document.getElementById("compare-chart");
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    const dpr = window.devicePixelRatio || 1;
-    const W = canvas.clientWidth || 720;
-    const H = 220;
-    canvas.width = W * dpr;
-    canvas.height = H * dpr;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, W, H);
-    const pad = { l: 48, r: 16, t: 20, b: 36 };
-    const plotW = W - pad.l - pad.r;
-    const plotH = H - pad.t - pad.b;
-    const rates = [20, 30, 50];
-    const series = [
-      { key: "baseline", color: "#94a3b8", label: "Baseline" },
-      { key: "logistic", color: "#7c3aed", label: "Logistic" },
-      { key: "forest", color: "#0d9488", label: "Forest" }
-    ];
-    ctx.strokeStyle = "#e2e8f0";
-    ctx.fillStyle = "#94a3b8";
-    ctx.font = "11px system-ui";
-    ctx.textAlign = "right";
-    for (let i = 0; i <= 4; i++) {
-      const y = pad.t + plotH - (i / 4) * plotH;
-      ctx.beginPath();
-      ctx.moveTo(pad.l, y);
-      ctx.lineTo(pad.l + plotW, y);
-      ctx.stroke();
-      ctx.fillText(i * 25 + "%", pad.l - 8, y + 4);
-    }
-    const groupW = plotW / rates.length;
-    const barW = groupW / 5;
-    rates.forEach((rate, gi) => {
-      const cx = pad.l + (gi + 0.5) * groupW;
-      series.forEach((s, si) => {
-        const m = METRICS[s.key];
-        const v = rate === 20 ? m.r20 : rate === 30 ? m.r30 : m.r50;
-        const h = v * plotH;
-        const x = cx + (si - 1) * (barW + 4) - barW / 2;
-        const y = pad.t + plotH - h;
-        ctx.fillStyle = s.color;
-        roundRect(ctx, x, y, barW, h, 4);
-        ctx.fill();
+  function loadResults() {
+    if (cachedData) return Promise.resolve(cachedData);
+    if (loadPromise) return loadPromise;
+    loadPromise = fetch("data/site_results.json")
+      .then((r) => {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.json();
+      })
+      .then((d) => {
+        cachedData = d;
+        return d;
+      })
+      .catch((err) => {
+        loadPromise = null;
+        throw err;
       });
-      ctx.fillStyle = "#64748b";
-      ctx.font = "11px system-ui";
-      ctx.textAlign = "center";
-      ctx.fillText(rate + "% review", cx, pad.t + plotH + 18);
+    return loadPromise;
+  }
+
+  function fmt(x, digits) {
+    if (x == null || Number.isNaN(x)) return "—";
+    return Number(x).toFixed(digits != null ? digits : 3);
+  }
+
+  function pct(x, digits) {
+    if (x == null || Number.isNaN(x)) return "—";
+    return (Number(x) * 100).toFixed(digits != null ? digits : 1) + "%";
+  }
+
+  function renderNav(activeId) {
+    const el = document.getElementById("site-nav");
+    if (!el) return;
+    const links = [
+      { href: "index.html", title: "Home", id: "home" },
+      ...STEPS.map((s) => ({ href: s.href, title: s.title, id: s.id })),
+      { href: "reproduce.html", title: "Reproduce", id: "reproduce" },
+      {
+        href: "https://github.com/Janil-ship-it/es335-math-recognition-error-prediction",
+        title: "GitHub",
+        id: "repo",
+        external: true,
+      },
+    ];
+    el.innerHTML = `
+      <div class="wrap nav-inner">
+        <button type="button" class="nav-toggle" aria-expanded="false" aria-controls="nav-links" id="nav-toggle">Menu</button>
+        <ul class="nav-links" id="nav-links">
+          ${links
+            .map((l) => {
+              const cls = [l.id === activeId ? "active" : "", l.id === "repo" ? "repo" : ""].filter(Boolean).join(" ");
+              const extra = l.external ? ' target="_blank" rel="noopener"' : "";
+              return `<li><a href="${l.href}" class="${cls}"${extra}>${l.title}</a></li>`;
+            })
+            .join("")}
+        </ul>
+      </div>`;
+    const toggle = document.getElementById("nav-toggle");
+    const list = document.getElementById("nav-links");
+    if (toggle && list) {
+      toggle.addEventListener("click", () => {
+        const open = list.classList.toggle("open");
+        toggle.setAttribute("aria-expanded", open ? "true" : "false");
+      });
+    }
+  }
+
+  function renderStepChrome(stepId) {
+    const step = STEPS.find((s) => s.id === stepId);
+    if (!step) return;
+    const idx = STEPS.indexOf(step);
+    const progress = document.getElementById("step-progress");
+    if (progress) {
+      const pctDone = ((idx + 1) / STEPS.length) * 100;
+      progress.innerHTML = `
+        <p class="step-meta">Step ${step.num} of ${STEPS.length}</p>
+        <div class="progress-bar" role="progressbar" aria-valuenow="${step.num}" aria-valuemin="1" aria-valuemax="${STEPS.length}" aria-label="Walkthrough progress">
+          <span style="width:${pctDone}%"></span>
+        </div>`;
+    }
+    const crumb = document.getElementById("breadcrumb");
+    if (crumb) {
+      crumb.innerHTML = `<a href="index.html">Home</a><span>/</span><span>${step.title}</span>`;
+    }
+    const nav = document.getElementById("page-nav");
+    if (nav) {
+      const prev = STEPS[idx - 1];
+      const next = STEPS[idx + 1];
+      let html = "";
+      if (prev) {
+        html += `<a href="${prev.href}" class="prev"><span class="dir">Previous</span><span class="title">${prev.title}</span></a>`;
+      } else {
+        html += `<a href="index.html" class="prev"><span class="dir">Previous</span><span class="title">Home</span></a>`;
+      }
+      if (next) {
+        html += `<a href="${next.href}" class="next"><span class="dir">Next</span><span class="title">${next.title}</span></a>`;
+      } else {
+        html += `<a href="reproduce.html" class="next"><span class="dir">Appendix</span><span class="title">Reproduce</span></a>`;
+      }
+      nav.innerHTML = html;
+    }
+  }
+
+  function fillHeadlineStats(data, containerId) {
+    const el = document.getElementById(containerId);
+    if (!el || !data) return;
+    const m = data.metrics || {};
+    const lr = m.logistic_l2 || {};
+    const shuf = m.shuffled_label_control || {};
+    el.innerHTML = `
+      <div class="stat-card">
+        <div class="value">${fmt(lr.pr_auc)}</div>
+        <div class="label">Logistic PR-AUC<br><span class="ci">95% CI [${fmt(lr.pr_auc_ci && lr.pr_auc_ci[0])}, ${fmt(lr.pr_auc_ci && lr.pr_auc_ci[1])}]</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="value">${lr.delta_vs_baseline != null ? (lr.delta_vs_baseline >= 0 ? "+" : "") + fmt(lr.delta_vs_baseline) : "—"}</div>
+        <div class="label">Δ vs baseline<br><span class="ci">CI includes zero</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="value">${pct(lr["recall@30"])}</div>
+        <div class="label">Recall @ 30% review</div>
+      </div>
+      <div class="stat-card">
+        <div class="value">${fmt(shuf.pr_auc)}</div>
+        <div class="label">Shuffled-label control<br><span class="ci">near prevalence</span></div>
+      </div>`;
+  }
+
+  function fillResultsTable(data, tbodyId) {
+    const tbody = document.getElementById(tbodyId);
+    if (!tbody || !data) return;
+    const m = data.metrics || {};
+    let bestPrauc = -1;
+    let bestKey = null;
+    MODEL_ORDER.forEach((k) => {
+      if (m[k] && m[k].pr_auc > bestPrauc) {
+        bestPrauc = m[k].pr_auc;
+        bestKey = k;
+      }
     });
-    series.forEach((s, i) => {
-      const x = pad.l + i * 90;
-      ctx.fillStyle = s.color;
-      ctx.fillRect(x, 6, 12, 12);
-      ctx.fillStyle = "#334155";
-      ctx.font = "11px system-ui";
-      ctx.textAlign = "left";
-      ctx.fillText(s.label, x + 16, 16);
+    tbody.innerHTML = MODEL_ORDER.map((k) => {
+      const r = m[k];
+      if (!r || r.pr_auc == null) return "";
+      const meta = MODEL_META[k] || { label: k };
+      const delta =
+        r.delta_vs_baseline != null
+          ? `${r.delta_vs_baseline >= 0 ? "+" : ""}${fmt(r.delta_vs_baseline)} <span class="ci">[${fmt(r.delta_ci && r.delta_ci[0])}, ${fmt(r.delta_ci && r.delta_ci[1])}]</span>`
+          : "—";
+      const best = k === bestKey ? ' class="best"' : "";
+      return `<tr${best}>
+        <td><strong>${meta.label}</strong></td>
+        <td class="num">${fmt(r.pr_auc)} <span class="ci">[${fmt(r.pr_auc_ci && r.pr_auc_ci[0])}, ${fmt(r.pr_auc_ci && r.pr_auc_ci[1])}]</span></td>
+        <td class="num">${delta}</td>
+        <td class="num">${pct(r["recall@20"])}</td>
+        <td class="num">${pct(r["recall@30"])}</td>
+        <td class="num">${pct(r["recall@50"])}</td>
+        <td class="num">${fmt(r.brier)}</td>
+      </tr>`;
+    }).join("");
+  }
+
+  function fillFeatureImportance(data, canvasId) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas || typeof Chart === "undefined" || !data) return;
+    const fi = (data.metrics || {}).feature_importance_logistic || {};
+    const names = Object.keys(fi);
+    if (!names.length) return;
+    const vals = names.map((n) => fi[n]);
+    const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    new Chart(canvas, {
+      type: "bar",
+      data: {
+        labels: names,
+        datasets: [{ label: "Coefficient", data: vals, backgroundColor: vals.map((v) => (v >= 0 ? "#dc2626aa" : "#2563ebaa")) }],
+      },
+      options: {
+        indexAxis: "y",
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: {
+            title: { display: true, text: "Standardised coefficient" },
+            ticks: { color: isDark ? "#9aa3b2" : "#5a6270" },
+            grid: { color: isDark ? "#2a2f3a" : "#e2e5eb" },
+          },
+          y: { ticks: { color: isDark ? "#9aa3b2" : "#5a6270" }, grid: { display: false } },
+        },
+      },
     });
   }
 
-  setRate(30);
-  drawCompareChart();
-  window.addEventListener("resize", () => {
-    setRate(slider.value);
-    drawCompareChart();
-  });
+  function fillPrCurves(data, canvasId) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas || typeof Chart === "undefined" || !data) return;
+    const curves = data.pr_curves || {};
+    const datasets = [];
+    MODEL_ORDER.forEach((k) => {
+      const c = curves[k];
+      if (!c || !c.recall || !c.recall.length) return;
+      const meta = MODEL_META[k];
+      datasets.push({
+        label: meta.label,
+        data: c.recall.map((r, i) => ({ x: r, y: c.precision[i] })),
+        borderColor: meta.colorHex,
+        backgroundColor: "transparent",
+        pointRadius: 0,
+        tension: 0.15,
+        borderWidth: 2,
+      });
+    });
+    if (!datasets.length) {
+      const wrap = canvas.closest(".chart-box");
+      if (wrap) {
+        wrap.innerHTML =
+          '<p class="note">PR curve points are not in <code>site_results.json</code> for this build. Table metrics above are complete.</p>';
+      }
+      return;
+    }
+    new Chart(canvas, {
+      type: "line",
+      data: { datasets },
+      options: {
+        responsive: true,
+        scales: {
+          x: { type: "linear", title: { display: true, text: "Recall" }, min: 0, max: 1 },
+          y: { title: { display: true, text: "Precision" }, min: 0, max: 1 },
+        },
+        plugins: { legend: { position: "bottom" } },
+      },
+    });
+  }
+
+  function initFadeIn() {
+    const nodes = document.querySelectorAll(".fade-in");
+    if (!nodes.length) return;
+    if (!("IntersectionObserver" in window)) {
+      nodes.forEach((n) => n.classList.add("visible"));
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            e.target.classList.add("visible");
+            io.unobserve(e.target);
+          }
+        });
+      },
+      { threshold: 0.12 }
+    );
+    nodes.forEach((n) => io.observe(n));
+  }
+
+  function init(options) {
+    options = options || {};
+    const id = options.page || pageId();
+    renderNav(id);
+    if (id !== "home" && id !== "reproduce") {
+      renderStepChrome(id);
+    }
+    initFadeIn();
+
+    const needsData = options.stats || options.table || options.charts || options.onData;
+    if (!needsData) return;
+
+    document.querySelectorAll("[data-loading]").forEach((el) => {
+      el.innerHTML = '<div class="loading-block">Loading results…</div>';
+    });
+
+    loadResults()
+      .then((data) => {
+        if (options.stats) fillHeadlineStats(data, options.stats);
+        if (options.table) fillResultsTable(data, options.table);
+        if (options.featureChart) fillFeatureImportance(data, options.featureChart);
+        if (options.prChart) fillPrCurves(data, options.prChart);
+        if (typeof options.onData === "function") options.onData(data);
+      })
+      .catch((err) => {
+        document.querySelectorAll("[data-loading]").forEach((el) => {
+          el.innerHTML = `<div class="error-block">Could not load <code>data/site_results.json</code>: ${err.message}. Run <code>python -m src.05_evaluate_test</code> and open via a local server.</div>`;
+        });
+      });
+  }
+
+  window.MathGuard = {
+    init,
+    loadResults,
+    MODEL_META,
+    MODEL_ORDER,
+    STEPS,
+    fmt,
+    pct,
+  };
 })();
